@@ -95,7 +95,7 @@ async function completeShipment(tracking_number) {
         showNotification('success', data.message);
         table.ajax.reload();
     } catch (error) {
-        showNotification('error', 'Error al completar la entrega del envi­o');
+        showNotification('error', 'Error al completar la entrega del envio');
     }
 }
 
@@ -272,7 +272,7 @@ async function printQR(tracking_number, sender, recipient) {
             return false;
         }
     } catch (error) {
-        showNotification('error', 'El servicio de impresiÃ³n no esta disponible, reimprima manualmente');
+        showNotification('error', 'El servicio de impresión no está disponible, reimprima manualmente');
     }
 }
 
@@ -300,7 +300,7 @@ async function qrScanSuccess(decodedText) {
             showNotification('error', data.message);
         }
     } catch (error) {
-        showNotification('error', 'Error al actualizar el estado del envÃ­o');
+        showNotification('error', 'Error al actualizar el estado del envío');
     } finally {
         qrSpinner.classList.add('d-none');
         qrModal.hide();

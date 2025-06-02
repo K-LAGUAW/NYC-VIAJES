@@ -6,9 +6,6 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV SECRET_KEY=46@a01os_&53es#5_q@*#s)wcci4vnwk-e^#11#yt=gm8c(c+v
-ENV DEBUG=1
-ENV ALLOWED_HOSTS=*
 
 RUN pip install --upgrade pip 
  

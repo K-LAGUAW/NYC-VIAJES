@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  web:
+  web:  
     build: .
-    command: python manage.py runslserver 0.0.0.0:5000
+    command: python manage.py runserver 0.0.0.0:5000
     ports:
       - "5000:5000"
     environment:

@@ -1,9 +1,11 @@
-version: '0.1'
+version: '3'
 
 services:
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:5000
+    volumes:
+      - .:/app
     ports:
       - "5000:5000"
     environment:

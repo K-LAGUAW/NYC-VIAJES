@@ -1,4 +1,4 @@
-version: '0.2b'
+version: '0.1'
 
 services:
   web:

@@ -11,3 +11,5 @@ COPY . .
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+
+RUN python manage.py collectstatic --noinput

@@ -280,7 +280,7 @@ async function qrScanSuccess(decodedText) {
     qrSpinner.classList.remove('d-none');
 
     try {
-        const response = await fetch(`/api/v1/update_status/${decodedText}/`, {
+        const response = await fetch(`/api/v1/update_shipment/${decodedText}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

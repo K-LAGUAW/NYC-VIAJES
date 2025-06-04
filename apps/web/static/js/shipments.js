@@ -1,7 +1,6 @@
 // ============= Variables Globales =============
 let scanner;
 let table;
-let notificationQueue = Promise.resolve();
 
 // ============= Elementos del DOM =============
 // Botones principales
@@ -29,6 +28,7 @@ const envelopeInput = document.getElementById('envelopeInput');
 const shipmentModal = new bootstrap.Modal(document.getElementById('shipmentModal'));
 const shipmentForm = document.getElementById('shipmentForm');
 const shipmentButton = document.getElementById('shipmentButton');
+const shipmentSpinner = document.getElementById('shipmentSpinner');
 
 // Elementos del modal qr
 const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
@@ -55,26 +55,19 @@ function getCookie(cookieName) {
 }
 
 function showNotification(type, title, message, time = 3000) {
-    notificationQueue = notificationQueue.then(() => {
-        return new Promise((resolve) => {
-            Swal.mixin({
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: time,
-                timerProgressBar: true,
-                didClose: () => {
-                    resolve();
-                }
-            }).fire({
-                icon: type,
-                title: title,
-                text: message
-            });
-        });
+    Swal.mixin({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: time,
+        timerProgressBar: true
+    }).fire({
+        icon: type,
+        title: title,
+        text: message
     });
-    return notificationQueue;
 }
+
 
 async function completeShipment(tracking_number) {
     try {
@@ -95,7 +88,7 @@ async function completeShipment(tracking_number) {
         showNotification('success', data.message);
         table.ajax.reload();
     } catch (error) {
-        showNotification('error', 'Error al completar la entrega del envio');
+        showNotification('error', 'Error al completar la entrega del envío');
     }
 }
 
@@ -155,14 +148,15 @@ function initializeTable() {
 }
 
 function showDetails(data) {
-    console.log(data);
+    const dataParse = 'ASD'
+
     return (
         `
         <div class="d-flex flex-column my-2">
             <div class="text-center mb-3">
                 <h2 class="text-decoration-underline link-offset-1 fs-4">Detalles del envio</h2>
             </div>
-            <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-md-around">
+            <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-md-around mb-3">
                 <div class="shipment-details text-center">
                     <p><strong>Fecha de envio:</strong> ${data.creation_date}</p>
                     <p><strong>Numero de seguimiento:</strong> ${data.tracking_number}</p>
@@ -171,13 +165,16 @@ function showDetails(data) {
                 </div>
                 <div class="shipment-status text-center">
                     <p><strong>Fecha de actualizacion:</strong> ${data.update_date}</p>
+                    <p><strong>Numero de telefono:</strong> ${data.phone}</p>
                     <p><strong>Estado:</strong> ${data.status.name}</p>
-                    <p class="text-decoration-underline link-offset-1 fs-4 m-1">Total</p>
-                    <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white">$ ${data.total_amount}</p>
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                        <p class="text-decoration-underline link-offset-1 fs-4 m-1">Total:</p>
+                        <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${data.total_amount}</p>
+                    </div>
                 </div>
             </div>
             <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                ${data.status.id === 1 ? `<button class="btn btn-warning fw-medium" onclick="printQR('${data}')">Reimprimir ticket</button>` : ''}
+                ${data.status.id === 1 ? `<button class="btn btn-warning fw-medium" onclick="printQR('${dataParse}')">Reimprimir ticket</button>` : ''}
                 ${data.status.id === 3 ? `<button class="btn btn-success fw-medium" onclick="completeShipment('${data.tracking_number}')">Confirmar entrega</button>` : ''}
             </div>
         </div>
@@ -185,8 +182,8 @@ function showDetails(data) {
     );
 }
 
-// ============= Funciones de ImpresiÃ³n =============
-async function printQR(tracking_number, sender, recipient) {
+// ============= Funciones de Impresión =============
+async function printQR(data) {
     const payload = {
         nombreImpresora: getCookie('selectedPrinter'),
         serial: "YTAwODkxYjhfXzIwMjUtMDUtMTVfXzIwMjUtMDYtMTQjIyNZWkJRNTVZdko3bGJncWVJRXpUNCtxa0VTc1Y0Y1lhbXdhZVJscUI2OVNqME5tOVBNaVppcFdHRjVVVVNKTmQ2OXVoMTZzbHIxY05GMzBDRFVTUnRabC9BRUxqMTdOclNhSngxVjI1bzh2akE3bWRrc3FKdlhTRXB6blZ1NW1xVmN2WWJGZDRFSU1ZSXc1djQ0MU9OU3ROYURtbnMxQXdtRitKN29LOVEvdkQ0aTcrTGZUNTR6d3NlMWlhSk1iMXBUSFpPQ3lsZE9YU0dQME0yV1M1VmdpejJCRGNFemY0dldBOG5sZzlFaWtDVnd0RkMwUThCUVYrTjJtWlVGUUgyampFS1JUTkUvSG16NTgxTWxLK200NXVEWXdKa09RZjVZM0FuMC9TUFN2WGx6ZXl5WjBDSFpIUHp1T2M4WE50ZmlFOHpzcTg2Q0NpUE9Nam9QQjdYeUY0OUwzMWhNQi9xbHFGM0dUT0F5ZGpoa1VIWEozMjAyNkxDQ2djTFNyT0o4ZitPRjRsTlJjSTl1ZFBrNU44emNTcXJFVGVGYzdiQ0ZtRlMxSVRXb25FcUJXKzVHaTJuMWIxWUlVZVBwYkpEbkJmMVR3OXhTMTg4RU81a0JyL1dyYVB1Z1VKelUzYjZFdUpwTW11Z01XU053WmdMM2IwVVR6SXVnQmJ2NnBSaGdlamZWYmEybmozMEVMSVJZN3c1aXB6bjdaN3ZvUXc3VlJLcXVqcmMwV2VrMVV2emRjMjVZdXZhaU0zeU9lUXJ0U3JFWS9ic3hOd1hkcjhKYkdkdStZZHZSSVdQSm5wUzlKcEtBWUNubkhZWnNRc3FTTnFRN2VYWlRXaDljYWt2ai9oOU83SVV1YVkwZmJmQ1NCSXlxSkdwaGdHWHpHbSs5aWZNb21TNnczMD0=",
@@ -203,12 +200,12 @@ async function printQR(tracking_number, sender, recipient) {
             { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
             { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
             { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [tracking_number] },
+            { nombre: "EscribirTexto", argumentos: [data.tracking_number] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Iniciar", argumentos: [] },
             { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "ImprimirCodigoQr", argumentos: [tracking_number, 302, 1, 0] },
+            { nombre: "ImprimirCodigoQr", argumentos: [data.tracking_number, 302, 1, 0] },
             { nombre: "Iniciar", argumentos: [] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
@@ -228,7 +225,7 @@ async function printQR(tracking_number, sender, recipient) {
             { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
             { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
             { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [sender] },
+            { nombre: "EscribirTexto", argumentos: [data.sender] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
@@ -248,7 +245,7 @@ async function printQR(tracking_number, sender, recipient) {
             { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
             { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
             { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [recipient] },
+            { nombre: "EscribirTexto", argumentos: [data.recipient] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Feed", argumentos: [7] },
             { nombre: "CorteParcial", argumentos: [] }
@@ -272,7 +269,7 @@ async function printQR(tracking_number, sender, recipient) {
             return false;
         }
     } catch (error) {
-        showNotification('error', 'El servicio de impresión no está disponible, reimprima manualmente');
+        showNotification('error', 'El servicio de impresión no esta disponible, reimprima manualmente');
     }
 }
 
@@ -283,7 +280,7 @@ async function qrScanSuccess(decodedText) {
     qrSpinner.classList.remove('d-none');
 
     try {
-        const response = await fetch(`/api/v1/update_shipment/${decodedText}/`, {
+        const response = await fetch(`/api/v1/update_status/${decodedText}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -308,26 +305,12 @@ async function qrScanSuccess(decodedText) {
 }
 
 // ============= Event Listeners =============
-// InicializaciÃ³n
+// Inicialización
 document.addEventListener('DOMContentLoaded', function () {
     initializeTable();
-    let inactivityTimer;
-
-    function resetTimer() {
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            table.ajax.reload();
-            resetTimer();
-        }, 180000);
-    }
-
-    resetTimer();
-
-    document.addEventListener('mousemove', resetTimer);
-    document.addEventListener('keypress', resetTimer);
 });
 
-// Event Listeners - Modal de EnvÃ­os
+// Event Listeners - Modal de Envíos
 showShipment.addEventListener('click', async () => {
     try {
         const response = await fetch('/api/v1/packages_categories/');
@@ -355,6 +338,10 @@ showShipment.addEventListener('click', async () => {
 });
 
 shipmentButton.addEventListener('click', async () => {
+    shipmentButton.classList.add('disabled');
+    shipmentForm.classList.add('d-none');
+    shipmentSpinner.classList.remove('d-none');
+
     const formData = new FormData(shipmentForm);
 
     const sender = formData.get('sender');
@@ -380,8 +367,6 @@ shipmentButton.addEventListener('click', async () => {
         });
         const data = await response.json();
 
-        console.log(data);
-
         if (!response.ok) {
             showNotification('error', data.message);
             return;
@@ -395,6 +380,10 @@ shipmentButton.addEventListener('click', async () => {
         table.ajax.reload();
     } catch (error) {
         showNotification('error', 'Error al contactar con el servidor');
+    } finally {
+        shipmentButton.classList.remove('disabled');
+        shipmentForm.classList.remove('d-none');
+        shipmentSpinner.classList.add('d-none');
     }
 });
 
@@ -459,7 +448,7 @@ qrModal._element.addEventListener('hide.bs.modal', async function () {
     }
 });
 
-// Event Listeners - Modal ConfiguraciÃ³n
+// Event Listeners - Modal Configuración
 showConfig.addEventListener('click', async () => {
     try {
         const response = await fetch("http://localhost:2811/impresoras");

@@ -66,7 +66,7 @@ class Shipments(models.Model):
     sender = models.CharField(max_length=50, verbose_name="Remitente")
     recipient = models.CharField(max_length=50, verbose_name="Destinatario")
     phone = models.CharField(max_length=10, verbose_name="Telefono")
-    package_amount = models.ForeignKey('PackagePrices', on_delete=models.CASCADE, verbose_name="Importe de paquete")
+    package_amount = models.ForeignKey('PackagePrices',  on_delete=models.CASCADE, verbose_name="Importe de paquete")
     envelope_amount = models.PositiveIntegerField(default=0, verbose_name="Importe de sobre")
     package_pickup = models.BooleanField(verbose_name="Recogida de paquete")
     total_amount = models.PositiveIntegerField(null=True, blank=True, verbose_name="Importe total")
@@ -79,4 +79,3 @@ class Shipments(models.Model):
     def __str__(self):
         formatted_date = self.update_date.strftime("%Y-%m-%d %H:%M")
         return f"{self.tracking_number} - {self.status} | Actualizado: {formatted_date}"
-

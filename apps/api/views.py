@@ -100,28 +100,39 @@ class UpdateShipmentStatusView(APIView):
     def post(self, request, tracking_number):
         try:
             shipment = get_object_or_404(Shipments, tracking_number=tracking_number)
-            status_code = 200
             
-            current_status = shipment.status.id
+            if shipment:
+                status_code = 200
+                current_status = shipment.status.id
+
+                if shipment.package_type.abbreviation == 'TUR':
+                    if current_status == 3:
+                        result = f'Paquete {tracking_number} listo para ser cobrado'
+                        status_code = 400
+                    else:
+                        shipment.status_id = 7
+                        shipment.save()
+                        result = f'Estado de paquete {tracking_number} actualizado a {shipment.status.name.lower()}'
+                else:
+                    if current_status == 1:
+                        shipment.status_id = 2
+                        shipment.save()
+                        result = f'Estado de paquete {tracking_number} actualizado a {shipment.status.name.lower()}'
+                    elif current_status == 2:
+                        shipment.status_id = 3
+                        shipment.save()
+                        result = f'Estado de paquete {tracking_number} actualizado a {shipment.status.name.lower()}'
+                    elif current_status == 3:
+                        result = f'Paquete {tracking_number} listo para ser entregado'
+                        status_code = 400
             
-            if current_status == 1:
-                shipment.status_id = 2
-                shipment.save()
-                result = f'Paquete {tracking_number} actualizado a estado: {shipment.status.name.lower()}'
-            elif current_status == 2:
-                shipment.status_id = 3
-                shipment.save()
-                result = f'Paquete {tracking_number} actualizado a estado: {shipment.status.name.lower()}'
-            elif current_status == 3:
-                result = f'El paquete {tracking_number} ya se encuentra listo para ser entregado'
-                status_code = 400
-            
-            return Response({
-                'message': result}, 
-                status=status_code)
+                return Response({
+                    'message': result}, 
+                    status=status_code
+                )
         except Http404:
             return Response({
-                'message': f'No se encontro ningun paquete con el numero de tracking: {tracking_number}'}, 
+                'message': f'No se encontro ningun paquete con el numero de seguimiento {tracking_number}'}, 
                 status=404
             )
 

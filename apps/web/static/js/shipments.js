@@ -1,6 +1,6 @@
 // ============= Variables Globales =============
-let scanner;
-let table;
+const notificationQueue = [];
+let scanner, table, isShowingNotification = false;
 
 // ============= Elementos del DOM =============
 // Botones principales
@@ -27,6 +27,7 @@ const envelopeInput = document.getElementById('envelopeInput');
 // Elementos del modal shipment
 const shipmentModal = new bootstrap.Modal(document.getElementById('shipmentModal'));
 const shipmentForm = document.getElementById('shipmentForm');
+const shipimetFormAllFields = shipmentForm.querySelectorAll('input, select');
 const shipmentButton = document.getElementById('shipmentButton');
 const shipmentSpinner = document.getElementById('shipmentSpinner');
 
@@ -52,9 +53,14 @@ function getCookie(cookieName) {
         }
     }
     return null;
-}
+};
 
-function showNotification(type, title, message, time = 3000) {
+function processQueue() {
+    if (notificationQueue.length === 0 || isShowingNotification) return;
+    
+    isShowingNotification = true;
+    const {type, title, message, time} = notificationQueue.shift();
+    
     Swal.mixin({
         toast: true,
         position: "top-end",
@@ -65,9 +71,16 @@ function showNotification(type, title, message, time = 3000) {
         icon: type,
         title: title,
         text: message
+    }).then(() => {
+        isShowingNotification = false;
+        processQueue();
     });
-}
+};
 
+function showNotification(type, title, message, time = 2000) {
+    notificationQueue.push({type, title, message, time});
+    processQueue();
+};
 
 async function completeShipment(tracking_number) {
     try {
@@ -120,7 +133,11 @@ function initializeTable() {
             },
             { data: 'tracking_number' },
             { data: 'sender' },
-            { data: 'recipient' }
+            { data: 'recipient' },
+            {
+                data: 'creation_date',
+                visible: false
+            }
         ],
         order: [1],
         processing: true,
@@ -145,10 +162,10 @@ function initializeTable() {
             row.child(showDetails(row.data())).show();
         }
     });
-}
+};
 
 // ============= Funcion mostrar detalles de envio =============
-function showDetails(d) {
+function showDetails(data) {
     return (
         `
         <div class="d-flex flex-column my-2">
@@ -157,24 +174,24 @@ function showDetails(d) {
             </div>
             <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-md-around mb-3">
                 <div class="shipment-details text-center">
-                    <p><strong>Fecha de envio:</strong> ${d.creation_date}</p>
-                    <p><strong>Numero de seguimiento:</strong> ${d.tracking_number}</p>
-                    <p><strong>Remitente:</strong> ${d.sender}</p>
-                    <p><strong>Destinatario:</strong> ${d.recipient}</p>
+                    <p><strong>Fecha de envio:</strong> ${data.creation_date}</p>
+                    <p><strong>Numero de seguimiento:</strong> ${data.tracking_number}</p>
+                    <p><strong>Remitente:</strong> ${data.sender}</p>
+                    <p><strong>Destinatario:</strong> ${data.recipient}</p>
                 </div>
                 <div class="shipment-status text-center">
-                    <p><strong>Fecha de actualizacion:</strong> ${d.update_date}</p>
-                    <p><strong>Numero de telefono:</strong> ${d.phone}</p>
-                    <p><strong>Estado:</strong> ${d.status.name}</p>
+                    <p><strong>Fecha de actualizacion:</strong> ${data.update_date}</p>
+                    <p><strong>Numero de telefono:</strong> ${data.phone}</p>
+                    <p><strong>Estado:</strong> ${data.status.name}</p>
                     <div class="d-flex gap-2 align-items-center justify-content-center">
                         <p class="text-decoration-underline link-offset-1 fs-4 m-1">Total:</p>
-                        <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${d.total_amount}</p>
+                        <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${data.total_amount}</p>
                     </div>
                 </div>
             </div>
             <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                ${d.status.id === 1 ? `<button class="btn btn-warning fw-medium" onclick="printQR('${d.tracking_number}')">Reimprimir ticket</button>` : ''}
-                ${d.status.id === 3 ? `<button class="btn btn-success fw-medium" onclick="completeShipment('${d.tracking_number}')">Confirmar entrega</button>` : ''}
+                ${data.status.id === 1 ? `<button class="btn btn-warning fw-medium" onclick="printQR('${data.tracking_number}')">Reimprimir ticket</button>` : ''}
+                ${data.status.id === 3 ? `<button class="btn btn-success fw-medium" onclick="completeShipment('${data.tracking_number}')">Confirmar entrega</button>` : ''}
             </div>
         </div>
         `
@@ -182,9 +199,9 @@ function showDetails(d) {
 };
 
 // ============= Funcion de Impresión =============
-async function printQR(t) {
+async function printQR(tracking_number) {
     // Busqueda de datos del envio
-    const response = await fetch(`/api/v1/search_shipment/${t}/`);
+    const response = await fetch(`/api/v1/search_shipment/${tracking_number}/`);
     const data = await response.json();
 
     if (!response.ok) {
@@ -274,10 +291,10 @@ async function printQR(t) {
 
         if (!data.ok === true) {
             showNotification('error', 'Error al imprimir el ticket, compruebe la impresora y reimprima manualmente');
-            return false;
+            return;
         }
 
-        return true;
+        showNotification('success', 'Ticket impreso correctamente');
     } catch {
         showNotification('error', 'Error en el servicio de impresion');
     }
@@ -315,6 +332,7 @@ async function qrScanSuccess(decodedText) {
 }
 
 // ============= Event Listeners =============
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', function () {
     initializeTable();
@@ -378,11 +396,24 @@ shipmentButton.addEventListener('click', async () => {
         const data = await response.json();
 
         if (!response.ok) {
+            shipimetFormAllFields.forEach(field => {
+                if (!field.name || field.name === 'envelope_amount') return;
+                
+                const hasError = data.errors.includes(field.name);
+                const isEmpty = !field.value.trim();
+                
+                const shouldBeInvalid = hasError || (!hasError && isEmpty);
+                const shouldBeValid = !hasError && !isEmpty;
+                
+                field.classList.toggle('is-invalid', shouldBeInvalid);
+                field.classList.toggle('is-valid', shouldBeValid);
+            });
+
             showNotification('error', data.message);
             return;
         }
 
-        printQR(data.shipment.tracking_number);
+        printQR(data.tracking_number);
 
         showNotification('success', data.message);
         shipmentModal.hide();
@@ -395,6 +426,27 @@ shipmentButton.addEventListener('click', async () => {
         shipmentForm.classList.remove('d-none');
         shipmentSpinner.classList.add('d-none');
     }
+});
+
+shipmentModal._element.addEventListener('hidden.bs.modal', function () {
+    shipmentForm.reset();
+
+    senderInput.disabled = false;
+    senderContainer.classList.remove('d-none');
+
+    envelopeInput.disabled = false;
+    envelopeContainer.classList.remove('d-none');
+
+    packageCheckbox.disabled = false;
+    packageCheckbox.checked = false;
+    packageContainer.classList.remove('d-none');
+
+    typeSelect.innerHTML = '';
+    priceSelect.innerHTML = '';
+
+    shipimetFormAllFields.forEach(i => {
+        i.classList.remove('is-invalid', 'is-valid');
+    });
 });
 
 typeSelect.addEventListener('change', function () {
@@ -420,23 +472,10 @@ typeSelect.addEventListener('change', function () {
         packageCheckbox.disabled = false;
         packageContainer.classList.remove('d-none');
     }
-});
 
-shipmentModal._element.addEventListener('hidden.bs.modal', function () {
-    shipmentForm.reset();
-
-    senderInput.disabled = false;
-    senderContainer.classList.remove('d-none');
-
-    envelopeInput.disabled = false;
-    envelopeContainer.classList.remove('d-none');
-
-    packageCheckbox.disabled = false;
-    packageCheckbox.checked = false;
-    packageContainer.classList.remove('d-none');
-
-    typeSelect.innerHTML = '';
-    priceSelect.innerHTML = '';
+    shipimetFormAllFields.forEach(i => {
+        i.classList.remove('is-invalid', 'is-valid');
+    });
 });
 
 // Event Listeners - Modal QR

@@ -20,10 +20,14 @@ class CreateShipmentView(APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = ShipmentCreateSerializer(data=request.data)
+
         if not serializer.is_valid():
-                return Response({
-                    'message': f'Faltan los campos requeridos',
-                }, status=400)
+            error_fields = list(serializer.errors.keys())
+            
+            return Response({
+                'message': 'Completa los campos requeridos',
+                'errors': error_fields
+            }, status=400)
 
         try:
             validated_data = serializer.validated_data
@@ -71,13 +75,13 @@ class CreateShipmentView(APIView):
                 whatsapp_sent = False
 
             return Response({
-                'message': 'Envio creado' + (' pero no se pudo enviar el mensaje de WhatsApp' if not whatsapp_sent else ''),
-                'shipment': ShipmentSerializer(shipment).data
+                'message': 'Envio creado correctamente' + (', pero no se pudo enviar el mensaje de whatsapp' if not whatsapp_sent else ''),
+                'tracking_number': shipment.tracking_number
             }, status=201)
 
         except Exception:
             return Response({
-                'message': 'Error interno al crear el envío'
+                'message': 'Error interno al crear el envio'
             }, status=400)
 
 class SearchShipmentView(APIView):

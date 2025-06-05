@@ -100,9 +100,9 @@ class UpdateShipmentStatusView(APIView):
     def post(self, request, tracking_number):
         try:
             shipment = get_object_or_404(Shipments, tracking_number=tracking_number)
-            
+            status_code = 200
+
             if shipment:
-                status_code = 200
                 current_status = shipment.status.id
 
                 if shipment.package_type.abbreviation == 'TUR':

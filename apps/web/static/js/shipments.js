@@ -147,9 +147,8 @@ function initializeTable() {
     });
 }
 
-function showDetails(data) {
-    const dataParse = 'ASD'
-
+// ============= Funcion mostrar detalles de envio =============
+function showDetails(d) {
     return (
         `
         <div class="d-flex flex-column my-2">
@@ -158,32 +157,42 @@ function showDetails(data) {
             </div>
             <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-md-around mb-3">
                 <div class="shipment-details text-center">
-                    <p><strong>Fecha de envio:</strong> ${data.creation_date}</p>
-                    <p><strong>Numero de seguimiento:</strong> ${data.tracking_number}</p>
-                    <p><strong>Remitente:</strong> ${data.sender}</p>
-                    <p><strong>Destinatario:</strong> ${data.recipient}</p>
+                    <p><strong>Fecha de envio:</strong> ${d.creation_date}</p>
+                    <p><strong>Numero de seguimiento:</strong> ${d.tracking_number}</p>
+                    <p><strong>Remitente:</strong> ${d.sender}</p>
+                    <p><strong>Destinatario:</strong> ${d.recipient}</p>
                 </div>
                 <div class="shipment-status text-center">
-                    <p><strong>Fecha de actualizacion:</strong> ${data.update_date}</p>
-                    <p><strong>Numero de telefono:</strong> ${data.phone}</p>
-                    <p><strong>Estado:</strong> ${data.status.name}</p>
+                    <p><strong>Fecha de actualizacion:</strong> ${d.update_date}</p>
+                    <p><strong>Numero de telefono:</strong> ${d.phone}</p>
+                    <p><strong>Estado:</strong> ${d.status.name}</p>
                     <div class="d-flex gap-2 align-items-center justify-content-center">
                         <p class="text-decoration-underline link-offset-1 fs-4 m-1">Total:</p>
-                        <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${data.total_amount}</p>
+                        <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${d.total_amount}</p>
                     </div>
                 </div>
             </div>
             <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                ${data.status.id === 1 ? `<button class="btn btn-warning fw-medium" onclick="printQR('${dataParse}')">Reimprimir ticket</button>` : ''}
-                ${data.status.id === 3 ? `<button class="btn btn-success fw-medium" onclick="completeShipment('${data.tracking_number}')">Confirmar entrega</button>` : ''}
+                ${d.status.id === 1 ? `<button class="btn btn-warning fw-medium" onclick="printQR('${d.tracking_number}')">Reimprimir ticket</button>` : ''}
+                ${d.status.id === 3 ? `<button class="btn btn-success fw-medium" onclick="completeShipment('${d.tracking_number}')">Confirmar entrega</button>` : ''}
             </div>
         </div>
         `
     );
-}
+};
 
-// ============= Funciones de Impresión =============
-async function printQR(data) {
+// ============= Funcion de Impresión =============
+async function printQR(t) {
+    // Busqueda de datos del envio
+    const response = await fetch(`/api/v1/search_shipment/${t}/`);
+    const data = await response.json();
+
+    if (!response.ok) {
+        showNotification('error', 'Numero de seguimiento invalido, no se puede imprimir el ticket');
+        return;
+    }
+
+    // Preparacion de datos para la impresion
     const payload = {
         nombreImpresora: getCookie('selectedPrinter'),
         serial: "YTAwODkxYjhfXzIwMjUtMDUtMTVfXzIwMjUtMDYtMTQjIyNZWkJRNTVZdko3bGJncWVJRXpUNCtxa0VTc1Y0Y1lhbXdhZVJscUI2OVNqME5tOVBNaVppcFdHRjVVVVNKTmQ2OXVoMTZzbHIxY05GMzBDRFVTUnRabC9BRUxqMTdOclNhSngxVjI1bzh2akE3bWRrc3FKdlhTRXB6blZ1NW1xVmN2WWJGZDRFSU1ZSXc1djQ0MU9OU3ROYURtbnMxQXdtRitKN29LOVEvdkQ0aTcrTGZUNTR6d3NlMWlhSk1iMXBUSFpPQ3lsZE9YU0dQME0yV1M1VmdpejJCRGNFemY0dldBOG5sZzlFaWtDVnd0RkMwUThCUVYrTjJtWlVGUUgyampFS1JUTkUvSG16NTgxTWxLK200NXVEWXdKa09RZjVZM0FuMC9TUFN2WGx6ZXl5WjBDSFpIUHp1T2M4WE50ZmlFOHpzcTg2Q0NpUE9Nam9QQjdYeUY0OUwzMWhNQi9xbHFGM0dUT0F5ZGpoa1VIWEozMjAyNkxDQ2djTFNyT0o4ZitPRjRsTlJjSTl1ZFBrNU44emNTcXJFVGVGYzdiQ0ZtRlMxSVRXb25FcUJXKzVHaTJuMWIxWUlVZVBwYkpEbkJmMVR3OXhTMTg4RU81a0JyL1dyYVB1Z1VKelUzYjZFdUpwTW11Z01XU053WmdMM2IwVVR6SXVnQmJ2NnBSaGdlamZWYmEybmozMEVMSVJZN3c1aXB6bjdaN3ZvUXc3VlJLcXVqcmMwV2VrMVV2emRjMjVZdXZhaU0zeU9lUXJ0U3JFWS9ic3hOd1hkcjhKYkdkdStZZHZSSVdQSm5wUzlKcEtBWUNubkhZWnNRc3FTTnFRN2VYWlRXaDljYWt2ai9oOU83SVV1YVkwZmJmQ1NCSXlxSkdwaGdHWHpHbSs5aWZNb21TNnczMD0=",
@@ -252,6 +261,7 @@ async function printQR(data) {
         ]
     };
 
+    // Impresion del ticket
     try {
         const response = await fetch("http://localhost:2811/imprimir", {
             method: "POST",
@@ -260,18 +270,18 @@ async function printQR(data) {
             },
             body: JSON.stringify(payload)
         });
-        const result = await response.json();
+        const data = await response.json();
 
-        if (result.ok === true) {
-            return true;
-        } else {
+        if (!data.ok === true) {
             showNotification('error', 'Error al imprimir el ticket, compruebe la impresora y reimprima manualmente');
             return false;
         }
-    } catch (error) {
-        showNotification('error', 'El servicio de impresión no esta disponible, reimprima manualmente');
+
+        return true;
+    } catch {
+        showNotification('error', 'Error en el servicio de impresion');
     }
-}
+};
 
 // ============= Funciones de Escaneo QR =============
 async function qrScanSuccess(decodedText) {
@@ -297,7 +307,7 @@ async function qrScanSuccess(decodedText) {
             showNotification('error', data.message);
         }
     } catch (error) {
-        showNotification('error', 'Error al actualizar el estado del envío');
+        showNotification('error', 'Error al actualizar el estado del envio');
     } finally {
         qrSpinner.classList.add('d-none');
         qrModal.hide();
@@ -372,7 +382,7 @@ shipmentButton.addEventListener('click', async () => {
             return;
         }
 
-        printQR(data.shipment);
+        printQR(data.shipment.tracking_number);
 
         showNotification('success', data.message);
         shipmentModal.hide();

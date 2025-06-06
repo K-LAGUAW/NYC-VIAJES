@@ -31,7 +31,7 @@
 
     <div class="d-flex flex-column gap-2 position-fixed bottom-0 end-0 m-4">
         <button type="button" class="btn btn-primary d-flex justify-content-center align-items-center py-2" id="showConfig">
-            <i class="ti ti-settings fs-5"></i>
+            <i class="ti ti-printer fs-5"></i>
         </button>
         <button type="button" class="btn btn-warning d-flex justify-content-center align-items-center py-2" id="scanQr">
             <i class="ti ti-qrcode fs-5"></i>
@@ -96,9 +96,11 @@
     <div class="modal fade" tabindex="-1" id="qrModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Escanear QR</h5>
-              <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Escanear QR</h5>
+                <div data-bs-theme="dark">
+                    <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
             <div class="modal-body" >
                 <div id="qr-reader"></div>
@@ -116,15 +118,15 @@
     <div class="modal fade" tabindex="-1" id="printerModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-dark text-white">
               <h5 class="modal-title">Configuracion de impresora</h5>
-              <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+              <div data-bs-theme="dark">
+                <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
             </div>
-            <div class="modal-body py-4" id="printerContainer">
-                <select class="form-select p-3" id="printerSelect"></select>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-success" id="printerButton">Guardar</button>
+            <div class="modal-body py-4" id="printerContainer"></div>
+            <div class="modal-footer bg-dark text-white">
+                <button type="button" class="btn btn-success fw-medium" id="printerButton">Guardar</button>
             </div>
           </div>
         </div>

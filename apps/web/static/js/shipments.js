@@ -35,7 +35,7 @@ const qrSpinner = document.getElementById('qrSpinner');
 
 // Modal de configuración
 const printerModal = new bootstrap.Modal(document.getElementById('printerModal'));
-const printerSelect = document.getElementById('printerSelect');
+const printerContainer = document.getElementById('printerContainer');
 const printerButton = document.getElementById('printerButton');
 
 // Modal de completado
@@ -436,29 +436,57 @@ qrModal._element.addEventListener('hide.bs.modal', async () => {
 
 // ============= Event Listeners - Modal Impresora =============
 showConfig.addEventListener('click', async () => {
+    showConfig.classList.add('disabled');
+
     try {
         const response = await fetch("http://localhost:2811/impresoras");
         const data = await response.json();
         
-        if (!response.ok) {
-            printerSelect.classList.add('d-none');
+        if (!response.ok || !data.length) {
+            printerContainer.innerHTML = `<p class="fw-semibold text-center text-danger m-0 px-5">Error al obtener impresoras disponibles reintente nuevamente</p>`;
+            printerButton.classList.add('disabled');
             showNotification('error', 'Error al obtener impresoras');
-            return;
-        }
+            return; 
+        };
 
-        printerSelect.innerHTML = data.map(printer => 
-            `<option value="${printer}">${printer}</option>`
-        ).join('');
+        printerContainer.innerHTML = `
+        <select class="form-select fw-medium shadow-sm p-3" id="printerSelect">
+            ${data.map(printer => `
+                <option value="${printer}">🖨️ ${printer}</option>
+            `).join('')}
+        </select>
+    `;
     } catch {
-        showNotification('error', 'Servicio de impresión no disponible');
-    }
-    printerModal.show();
+        printerContainer.innerHTML = `<p class="fw-semibold text-center text-danger m-0 px-5">Error en el servicio de impresion contacte con un administrador</p>`;
+        printerButton.classList.add('disabled');
+        showNotification('error', 'Servicio de impresion no disponible');
+    } finally {
+        showConfig.classList.remove('disabled');
+        printerModal.show();
+    };
 });
 
 printerButton.addEventListener('click', () => {
-    document.cookie = `selectedPrinter=${printerSelect.value};path=/;max-age=31536000`;
-    configModal.hide();
-    showNotification('success', 'Impresora configurada');
+    printerButton.classList.add('disabled');
+
+    const printerSaved = getCookie('selectedPrinter');
+    const printerSelected = document.getElementById('printerSelect').value;
+
+    document.cookie = `selectedPrinter=${printerSelected};path=/;max-age=31536000`;
+
+    if (!printerSaved === printerSelected) {
+        showNotification('error', 'Error al configurar impresora');
+        printerButton.classList.remove('disabled');
+        return;
+    };
+
+    showNotification('success', 'Impresora configurada correctamente');
+    printerModal.hide();
+});
+
+printerModal._element.addEventListener('hidden.bs.modal', () => {
+    printerContainer.innerHTML = '';
+    printerButton.classList.remove('disabled');
 });
 
 // ============= Funciones de Completado =============

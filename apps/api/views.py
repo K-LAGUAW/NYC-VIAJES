@@ -1,8 +1,11 @@
 import requests
 import uuid
 
-from .models import Shipments, Parameters, PackagePrices, PackageTypes
-from .serializers import ShipmentSerializer, ShipmentSearchSerializer, ShipmentCreateSerializer, PackagePricesSerializer, PackageTypesSerializer
+from .models import Shipments, Parameters, PackagePrices, PackageTypes, PaymentsTypes
+from .serializers import (
+    ShipmentSerializer, ShipmentSearchSerializer, ShipmentCreateSerializer, 
+    PackagePricesSerializer, PackageTypesSerializer, PaymentsTypesSerializer
+)
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -98,6 +101,14 @@ class PackagesCategoriesView(APIView):
         return Response({
             'package_types': PackageTypesSerializer(package_types, many=True).data,
             'package_prices': PackagePricesSerializer(package_prices, many=True).data
+        })
+
+class PaymentsTypesView(APIView):
+    def get(self, request):
+        payments_types = PaymentsTypes.objects.all()
+
+        return Response({
+            'payment_types': PaymentsTypesSerializer(payments_types, many=True).data
         })
 
 class UpdateShipmentStatusView(APIView):

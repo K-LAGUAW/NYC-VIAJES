@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from . models import Shipments, PackagePrices, PackageTypes, Parameters
+from . models import Shipments, PackagePrices, PackageTypes, PaymentsTypes
 
 class ShipmentSerializer(serializers.ModelSerializer):
     creation_date = serializers.DateTimeField(format="%d-%m-%Y %H:%M")
@@ -45,14 +45,14 @@ class ShipmentSearchSerializer(serializers.ModelSerializer):
 class PackagePricesSerializer(serializers.ModelSerializer):
     class Meta:
         model = PackagePrices
-        fields = '__all__'
+        fields = ('name', 'mount', 'abbreviation')
 
 class PackageTypesSerializer(serializers.ModelSerializer):
     class Meta:
         model = PackageTypes
-        fields = '__all__'
+        fields = ('name', 'abbreviation')
 
-class ParametersSerializer(serializers.ModelSerializer):
+class PaymentsTypesSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Parameters
-        fields = '__all__'
+        model = PaymentsTypes
+        fields = ('name', 'abbreviation')

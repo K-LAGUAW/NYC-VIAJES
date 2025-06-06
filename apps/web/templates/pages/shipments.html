@@ -113,18 +113,36 @@
         </div>
     </div>
 
-    <div class="modal fade" tabindex="-1" id="configModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal fade" tabindex="-1" id="printerModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Configuracion de impresora</h5>
               <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <select class="form-select py-3 shadow-none" id="printerSelect"></select>
+            <div class="modal-body py-4" id="printerContainer">
+                <select class="form-select" id="printerSelect"></select>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-success" id="printerButton">Guardar</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <div class="modal fade" tabindex="-1" id="completeModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Completar entrega</h5>
+              <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="trackingTitle"></p>
+                <select class="form-select py-3 shadow-none" id="paymentSelect"></select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="printerButton">Confirmar</button>
             </div>
           </div>
         </div>

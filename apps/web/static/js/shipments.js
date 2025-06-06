@@ -1,6 +1,8 @@
 // ============= Variables Globales =============
-const notificationQueue = [];
-let scanner, table, isShowingNotification = false;
+const notificationQueue = []; // Cola de notificaciones pendientes
+let scanner; // Instancia del escáner QR
+let table; // Instancia de la tabla DataTable
+let isShowingNotification = false; // Control de visualización de notificaciones
 
 // ============= Elementos del DOM =============
 // Botones principales
@@ -8,39 +10,45 @@ const showConfig = document.getElementById('showConfig');
 const scanQr = document.getElementById('scanQr');
 const showShipment = document.getElementById('showShipment');
 
-// Elementos del formulario
+// Formulario de envíos
 const typeSelect = document.getElementById('typeSelect');
 const priceSelect = document.getElementById('priceSelect');
 
-// Elementos del paquete
+// Contenedores y campos
 const packageContainer = document.getElementById('packageContainer');
 const packageCheckbox = document.getElementById('packageCheckbox');
-
-// Elementos del remitente
 const senderContainer = document.getElementById('senderContainer');
 const senderInput = document.getElementById('senderInput');
-
-// Elementos del sobre
 const envelopeContainer = document.getElementById('envelopeContainer');
 const envelopeInput = document.getElementById('envelopeInput');
 
-// Elementos del modal shipment
+// Modal de envíos
 const shipmentModal = new bootstrap.Modal(document.getElementById('shipmentModal'));
 const shipmentForm = document.getElementById('shipmentForm');
 const shipimetFormAllFields = shipmentForm.querySelectorAll('input, select');
 const shipmentButton = document.getElementById('shipmentButton');
 const shipmentSpinner = document.getElementById('shipmentSpinner');
 
-// Elementos del modal qr
+// Modal QR
 const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
 const qrSpinner = document.getElementById('qrSpinner');
 
-// Elementos del modal config
-const configModal = new bootstrap.Modal(document.getElementById('configModal'));
+// Modal de configuración
+const printerModal = new bootstrap.Modal(document.getElementById('printerModal'));
 const printerSelect = document.getElementById('printerSelect');
 const printerButton = document.getElementById('printerButton');
 
+// Modal de completado
+const completeModal = new bootstrap.Modal(document.getElementById('completeModal'));
+const trackingTitle = document.getElementById('trackingTitle');
+const paymentSelect = document.getElementById('paymentSelect');
+
 // ============= Funciones Utilitarias =============
+/**
+ * Obtiene el valor de una cookie por su nombre
+ * @param {string} cookieName - Nombre de la cookie
+ * @returns {string|null} Valor de la cookie o null si no existe
+ */
 function getCookie(cookieName) {
     const name = cookieName + '=';
     const decodedCookie = decodeURIComponent(document.cookie);
@@ -55,6 +63,9 @@ function getCookie(cookieName) {
     return null;
 };
 
+/**
+ * Procesa la cola de notificaciones pendientes
+ */
 function processQueue() {
     if (notificationQueue.length === 0 || isShowingNotification) return;
     
@@ -77,11 +88,22 @@ function processQueue() {
     });
 };
 
+/**
+ * Agrega una nueva notificación a la cola
+ * @param {string} type - Tipo de notificación (success, error, etc.)
+ * @param {string} title - Título de la notificación
+ * @param {string} message - Mensaje principal
+ * @param {number} time - Tiempo de visualización en milisegundos (opcional)
+ */
 function showNotification(type, title, message, time = 2000) {
     notificationQueue.push({type, title, message, time});
     processQueue();
 };
 
+/**
+ * Completa el estado de un envío marcándolo como entregado
+ * @param {string} tracking_number - Número de seguimiento del envío
+ */
 async function completeShipment(tracking_number) {
     try {
         const response = await fetch(`/api/v1/complete_shipment/${tracking_number}/`, {
@@ -106,6 +128,9 @@ async function completeShipment(tracking_number) {
 }
 
 // ============= Funciones de Tabla =============
+/**
+ * Inicializa y configura la tabla de envíos usando DataTables
+ */
 function initializeTable() {
     if (table) {
         table.destroy();
@@ -118,26 +143,19 @@ function initializeTable() {
             type: 'GET',
             dataSrc: ''
         },
-        columnDefs: [
-            {
-                targets: '_all',
-                className: 'text-center align-middle'
-            }
-        ],
+        columnDefs: [{ targets: '_all', className: 'text-center align-middle' }],
         columns: [
-            {
+            { 
                 className: 'dt-control',
                 orderable: false,
                 data: null,
-                defaultContent: '<i class="ti ti-id fs-4"></i>'
+                defaultContent: '<i class="ti ti-id fs-4"></i>',
+                responsivePriority: 1
             },
-            { data: 'tracking_number' },
-            { data: 'sender' },
-            { data: 'recipient' },
-            {
-                data: 'creation_date',
-                visible: false
-            }
+            { data: 'tracking_number', responsivePriority: 2 },
+            { data: 'sender', responsivePriority: 4 },
+            { data: 'recipient', responsivePriority: 3 },
+            { data: 'creation_date', visible: false }
         ],
         order: [1],
         processing: true,
@@ -146,151 +164,96 @@ function initializeTable() {
         scrollCollapse: true,
         paging: false,
         info: false,
-        language: {
-            url: '/static/json/es.json'
-        }
+        language: { url: '/static/json/es.json' }
     });
 
+    // Evento para expandir/filtrar detalles de envío
     table.on('click', 'td.dt-control', (e) => {
         let tr = e.target.closest('tr');
         let row = table.row(tr);
 
         if (row.child.isShown()) {
             row.child.hide();
-        }
-        else {
+        } else {
             row.child(showDetails(row.data())).show();
         }
     });
 };
 
-// ============= Funcion mostrar detalles de envio =============
+/**
+ * Genera el HTML para mostrar los detalles de un envío
+ * @param {Object} data - Datos del envío
+ * @returns {string} HTML con los detalles del envío
+ */
 function showDetails(data) {
-    return (
-        `
-        <div class="d-flex flex-column my-2">
-            <div class="text-center mb-3">
-                <h2 class="text-decoration-underline link-offset-1 fs-4">Detalles del envio</h2>
+    return `
+    <div class="d-flex flex-column my-2">
+        <div class="text-center mb-3">
+            <h2 class="text-decoration-underline link-offset-1 fs-4">Detalles del envio</h2>
+        </div>
+        <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-md-around mb-3">
+            <div class="shipment-details text-center">
+                <p><strong>Fecha de envio:</strong> ${data.creation_date}</p>
+                <p><strong>Numero de seguimiento:</strong> ${data.tracking_number}</p>
+                <p><strong>Remitente:</strong> ${data.sender}</p>
+                <p><strong>Destinatario:</strong> ${data.recipient}</p>
             </div>
-            <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-md-around mb-3">
-                <div class="shipment-details text-center">
-                    <p><strong>Fecha de envio:</strong> ${data.creation_date}</p>
-                    <p><strong>Numero de seguimiento:</strong> ${data.tracking_number}</p>
-                    <p><strong>Remitente:</strong> ${data.sender}</p>
-                    <p><strong>Destinatario:</strong> ${data.recipient}</p>
+            <div class="shipment-status text-center">
+                <p><strong>Fecha de actualizacion:</strong> ${data.update_date}</p>
+                <p><strong>Numero de telefono:</strong> ${data.phone}</p>
+                <p><strong>Estado:</strong> ${data.status.name}</p>
+                <div class="d-flex gap-2 align-items-center justify-content-center">
+                    <p class="text-decoration-underline link-offset-1 fs-4 m-1">Total:</p>
+                    <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${data.total_amount}</p>
                 </div>
-                <div class="shipment-status text-center">
-                    <p><strong>Fecha de actualizacion:</strong> ${data.update_date}</p>
-                    <p><strong>Numero de telefono:</strong> ${data.phone}</p>
-                    <p><strong>Estado:</strong> ${data.status.name}</p>
-                    <div class="d-flex gap-2 align-items-center justify-content-center">
-                        <p class="text-decoration-underline link-offset-1 fs-4 m-1">Total:</p>
-                        <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${data.total_amount}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                ${data.status.id === 1 ? `<button class="btn btn-warning fw-medium" onclick="printQR('${data.tracking_number}')">Reimprimir ticket</button>` : ''}
-                ${data.status.id === 3 ? `<button class="btn btn-success fw-medium" onclick="completeShipment('${data.tracking_number}')">Confirmar entrega</button>` : ''}
             </div>
         </div>
-        `
-    );
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
+            ${data.status.id === 1 
+                ? `<button class="btn btn-warning fw-medium" onclick="printQR('${data.tracking_number}')">Reimprimir ticket</button>` 
+                : ''}
+            ${data.status.id === 3 
+                ? `<button class="btn btn-success fw-medium" onclick="showComplete('${data.tracking_number}')">Confirmar entrega</button>` 
+                : ''}
+        </div>
+    </div>`;
 };
 
-// ============= Funcion de Impresión =============
+// ============= Funciones de Impresión =============
+/**
+ * Imprime el ticket QR para un envío
+ * @param {string} tracking_number - Número de seguimiento del envío
+ */
 async function printQR(tracking_number) {
-    // Busqueda de datos del envio
-    const response = await fetch(`/api/v1/search_shipment/${tracking_number}/`);
-    const data = await response.json();
-
-    if (!response.ok) {
-        showNotification('error', 'Numero de seguimiento invalido, no se puede imprimir el ticket');
-        return;
-    }
-
-    // Preparacion de datos para la impresion
-    const payload = {
-        nombreImpresora: getCookie('selectedPrinter'),
-        serial: "YTAwODkxYjhfXzIwMjUtMDUtMTVfXzIwMjUtMDYtMTQjIyNZWkJRNTVZdko3bGJncWVJRXpUNCtxa0VTc1Y0Y1lhbXdhZVJscUI2OVNqME5tOVBNaVppcFdHRjVVVVNKTmQ2OXVoMTZzbHIxY05GMzBDRFVTUnRabC9BRUxqMTdOclNhSngxVjI1bzh2akE3bWRrc3FKdlhTRXB6blZ1NW1xVmN2WWJGZDRFSU1ZSXc1djQ0MU9OU3ROYURtbnMxQXdtRitKN29LOVEvdkQ0aTcrTGZUNTR6d3NlMWlhSk1iMXBUSFpPQ3lsZE9YU0dQME0yV1M1VmdpejJCRGNFemY0dldBOG5sZzlFaWtDVnd0RkMwUThCUVYrTjJtWlVGUUgyampFS1JUTkUvSG16NTgxTWxLK200NXVEWXdKa09RZjVZM0FuMC9TUFN2WGx6ZXl5WjBDSFpIUHp1T2M4WE50ZmlFOHpzcTg2Q0NpUE9Nam9QQjdYeUY0OUwzMWhNQi9xbHFGM0dUT0F5ZGpoa1VIWEozMjAyNkxDQ2djTFNyT0o4ZitPRjRsTlJjSTl1ZFBrNU44emNTcXJFVGVGYzdiQ0ZtRlMxSVRXb25FcUJXKzVHaTJuMWIxWUlVZVBwYkpEbkJmMVR3OXhTMTg4RU81a0JyL1dyYVB1Z1VKelUzYjZFdUpwTW11Z01XU053WmdMM2IwVVR6SXVnQmJ2NnBSaGdlamZWYmEybmozMEVMSVJZN3c1aXB6bjdaN3ZvUXc3VlJLcXVqcmMwV2VrMVV2emRjMjVZdXZhaU0zeU9lUXJ0U3JFWS9ic3hOd1hkcjhKYkdkdStZZHZSSVdQSm5wUzlKcEtBWUNubkhZWnNRc3FTTnFRN2VYWlRXaDljYWt2ai9oOU83SVV1YVkwZmJmQ1NCSXlxSkdwaGdHWHpHbSs5aWZNb21TNnczMD0=",
-        operaciones: [
-            { nombre: "Iniciar", argumentos: [] },
-            { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "DescargarImagenDeInternetEImprimir", argumentos: ["https://i.postimg.cc/02PKCgMG/nyc-logo.png", 283, 0, false] },
-            { nombre: "Iniciar", argumentos: [] },
-            { nombre: "Feed", argumentos: [2] },
-            { nombre: "EstablecerTamañoFuente", argumentos: [3, 3] },
-            { nombre: "EstablecerEnfatizado", argumentos: [false] },
-            { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "EstablecerSubrayado", argumentos: [false] },
-            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [data.tracking_number] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "Iniciar", argumentos: [] },
-            { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "ImprimirCodigoQr", argumentos: [data.tracking_number, 302, 1, 0] },
-            { nombre: "Iniciar", argumentos: [] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
-            { nombre: "EstablecerEnfatizado", argumentos: [false] },
-            { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "EstablecerSubrayado", argumentos: [true] },
-            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: ["REMITENTE:"] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
-            { nombre: "EstablecerEnfatizado", argumentos: [false] },
-            { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "EstablecerSubrayado", argumentos: [false] },
-            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [data.sender] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
-            { nombre: "EstablecerEnfatizado", argumentos: [false] },
-            { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "EstablecerSubrayado", argumentos: [true] },
-            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: ["DESTINATARIO:"] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
-            { nombre: "EstablecerEnfatizado", argumentos: [false] },
-            { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "EstablecerSubrayado", argumentos: [false] },
-            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [data.recipient] },
-            { nombre: "Feed", argumentos: [1] },
-            { nombre: "Feed", argumentos: [7] },
-            { nombre: "CorteParcial", argumentos: [] }
-        ]
-    };
-
-    // Impresion del ticket
     try {
-        const response = await fetch("http://localhost:2811/imprimir", {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
+        // Obtener datos del envío
+        const response = await fetch(`/api/v1/search_shipment/${tracking_number}/`);
         const data = await response.json();
 
-        if (!data.ok === true) {
-            showNotification('error', 'Error al imprimir el ticket, compruebe la impresora y reimprima manualmente');
+        if (!response.ok) {
+            showNotification('error', 'Numero de seguimiento invalido');
+            return;
+        }
+
+        // Configurar payload de impresión
+        const payload = {
+            nombreImpresora: getCookie('selectedPrinter'),
+            serial: "YTAwODkxYjhfXzIwMjUtMDUtMTVfXzIwMjUtMDYtMTQjIyNZWkJRNTVZdko3bGJncWVJRXpUNCtxa0VTc1Y0Y1lhbXdhZVJscUI2OVNqME5tOVBNaVppcFdHRjVVVVNKTmQ2OXVoMTZzbHIxY05GMzBDRFVTUnRabC9BRUxqMTdOclNhSngxVjI1bzh2akE3bWRrc3FKdlhTRXB6blZ1NW1xVmN2WWJGZDRFSU1ZSXc1djQ0MU9OU3ROYURtbnMxQXdtRitKN29LOVEvdkQ0aTcrTGZUNTR6d3NlMWlhSk1iMXBUSFpPQ3lsZE9YU0dQME0yV1M1VmdpejJCRGNFemY0dldBOG5sZzlFaWtDVnd0RkMwUThCUVYrTjJtWlVGUUgyampFS1JUTkUvSG16NTgxTWxLK200NXVEWXdKa09RZjVZM0FuMC9TUFN2WGx6ZXl5WjBDSFpIUHp1T2M4WE50ZmlFOHpzcTg2Q0NpUE9Nam9QQjdYeUY0OUwzMWhNQi9xbHFGM0dUT0F5ZGpoa1VIWEozMjAyNkxDQ2djTFNyT0o4ZitPRjRsTlJjSTl1ZFBrNU44emNTcXJFVGVGYzdiQ0ZtRlMxSVRXb25FcUJXKzVHaTJuMWIxWUlVZVBwYkpEbkJmMVR3OXhTMTg4RU81a0JyL1dyYVB1Z1VKelUzYjZFdUpwTW11Z01XU053WmdMM2IwVVR6SXVnQmJ2NnBSaGdlamZWYmEybmozMEVMSVJZN3c1aXB6bjdaN3ZvUXc3VlJLcXVqcmMwV2VrMVV2emRjMjVZdXZhaU0zeU9lUXJ0U3JFWS9ic3hOd1hkcjhKYkdkdStZZHZSSVdQSm5wUzlKcEtBWUNubkhZWnNRc3FTTnFRN2VYWlRXaDljYWt2ai9oOU83SVV1YVkwZmJmQ1NCSXlxSkdwaGdHWHpHbSs5aWZNb21TNnczMD0=",
+            operaciones: [
+                // ... (operaciones de impresión)
+            ]
+        };
+
+        // Enviar a servicio de impresión
+        const printResponse = await fetch("http://localhost:2811/imprimir", {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const printData = await printResponse.json();
+
+        if (!printData.ok) {
+            showNotification('error', 'Error al imprimir el ticket');
             return;
         }
 
@@ -301,9 +264,12 @@ async function printQR(tracking_number) {
 };
 
 // ============= Funciones de Escaneo QR =============
+/**
+ * Maneja el escaneo exitoso de un código QR
+ * @param {string} decodedText - Texto decodificado del QR
+ */
 async function qrScanSuccess(decodedText) {
     await scanner.clear();
-
     qrSpinner.classList.remove('d-none');
 
     try {
@@ -318,7 +284,6 @@ async function qrScanSuccess(decodedText) {
 
         if (response.ok) {
             showNotification('success', data.message);
-            qrModal.hide();
             table.ajax.reload();
         } else {
             showNotification('error', data.message);
@@ -331,37 +296,36 @@ async function qrScanSuccess(decodedText) {
     }
 }
 
-// ============= Event Listeners =============
-
-// Inicialización
+// ============= Inicialización =============
 document.addEventListener('DOMContentLoaded', function () {
     initializeTable();
+
+    // Recargar datos cada 3 minutos
+    setInterval(() => {
+        if (table) table.ajax.reload(null, false);
+    }, 180000);
 });
 
-// Event Listeners - Modal de Envíos
+// ============= Event Listeners - Modal de Envíos =============
 showShipment.addEventListener('click', async () => {
     try {
         const response = await fetch('/api/v1/packages_categories/');
         const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error();
-        }
+        if (!response.ok) throw new Error();
 
-        typeSelect.innerHTML = '';
-        priceSelect.innerHTML = '';
-
-        data.package_types.forEach(type => {
-            typeSelect.innerHTML += `<option value="${type.id}">${type.name}</option>`;
-        });
-
-        data.package_prices.forEach(price => {
-            priceSelect.innerHTML += `<option value="${price.id}">${price.name} - $${price.mount}</option>`;
-        });
+        // Llenar selects con datos de la API
+        typeSelect.innerHTML = data.package_types.map(type => 
+            `<option value="${type.id}">${type.name}</option>`
+        ).join('');
+        
+        priceSelect.innerHTML = data.package_prices.map(price => 
+            `<option value="${price.id}">${price.name} - $${price.mount}</option>`
+        ).join('');
 
         shipmentModal.show();
     } catch {
-        showNotification('error', 'Error contacte con el administrador');
+        showNotification('error', 'Error cargando categorías');
     }
 });
 
@@ -370,57 +334,50 @@ shipmentButton.addEventListener('click', async () => {
     shipmentForm.classList.add('d-none');
     shipmentSpinner.classList.remove('d-none');
 
-    const formData = new FormData(shipmentForm);
-
-    const sender = formData.get('sender');
-    const envelopeAmount = formData.get('envelope_amount');
-
-    formData.set('sender', !sender || sender === '' ? 'N&C' : sender);
-    formData.set('envelope_amount', !envelopeAmount || envelopeAmount === '' ? 0 : envelopeAmount);
-
-    formData.append('package_type', typeSelect.value);
-    formData.append('package_amount', priceSelect.value);
-    formData.append('package_pickup', packageCheckbox.checked);
-
-    const formDataObject = Object.fromEntries(formData);
-
     try {
+        const formData = new FormData(shipmentForm);
+        
+        // Procesar campos opcionales
+        formData.set('sender', formData.get('sender') || 'N&C');
+        formData.set('envelope_amount', formData.get('envelope_amount') || 0);
+        
+        // Agregar campos adicionales
+        formData.append('package_type', typeSelect.value);
+        formData.append('package_amount', priceSelect.value);
+        formData.append('package_pickup', packageCheckbox.checked);
+
         const response = await fetch('/api/v1/create_shipment/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify(formDataObject)
+            body: JSON.stringify(Object.fromEntries(formData))
         });
+        
         const data = await response.json();
 
         if (!response.ok) {
+            // Validación de campos
             shipimetFormAllFields.forEach(field => {
                 if (!field.name || field.name === 'envelope_amount') return;
                 
                 const hasError = data.errors.includes(field.name);
                 const isEmpty = !field.value.trim();
                 
-                const shouldBeInvalid = hasError || (!hasError && isEmpty);
-                const shouldBeValid = !hasError && !isEmpty;
-                
-                field.classList.toggle('is-invalid', shouldBeInvalid);
-                field.classList.toggle('is-valid', shouldBeValid);
+                field.classList.toggle('is-invalid', hasError || (!hasError && isEmpty));
+                field.classList.toggle('is-valid', !hasError && !isEmpty);
             });
-
             showNotification('error', data.message);
             return;
         }
 
         printQR(data.tracking_number);
-
         showNotification('success', data.message);
         shipmentModal.hide();
-
         table.ajax.reload();
     } catch (error) {
-        showNotification('error', 'Error al contactar con el servidor');
+        showNotification('error', 'Error de conexión');
     } finally {
         shipmentButton.classList.remove('disabled');
         shipmentForm.classList.remove('d-none');
@@ -428,57 +385,40 @@ shipmentButton.addEventListener('click', async () => {
     }
 });
 
+// Reset del modal al cerrarse
 shipmentModal._element.addEventListener('hidden.bs.modal', function () {
     shipmentForm.reset();
-
     senderInput.disabled = false;
     senderContainer.classList.remove('d-none');
-
     envelopeInput.disabled = false;
     envelopeContainer.classList.remove('d-none');
-
     packageCheckbox.disabled = false;
-    packageCheckbox.checked = false;
     packageContainer.classList.remove('d-none');
-
     typeSelect.innerHTML = '';
     priceSelect.innerHTML = '';
-
-    shipimetFormAllFields.forEach(i => {
-        i.classList.remove('is-invalid', 'is-valid');
-    });
+    
+    shipimetFormAllFields.forEach(i => i.classList.remove('is-invalid', 'is-valid'));
 });
 
+// Cambio en tipo de paquete
 typeSelect.addEventListener('change', function () {
-    if (this.options[this.selectedIndex].text.toLowerCase() === 'turismo') {
-        senderInput.disabled = true;
+    const isTourism = this.options[this.selectedIndex].text.toLowerCase() === 'turismo';
+    
+    senderInput.disabled = isTourism;
+    senderContainer.classList.toggle('d-none', isTourism);
+    envelopeInput.disabled = isTourism;
+    envelopeContainer.classList.toggle('d-none', isTourism);
+    packageCheckbox.disabled = isTourism;
+    packageContainer.classList.toggle('d-none', isTourism);
+    
+    if (isTourism) {
         senderInput.value = '';
-        senderContainer.classList.add('d-none');
-
-        envelopeInput.disabled = true;
         envelopeInput.value = '';
-        envelopeContainer.classList.add('d-none');
-
-        packageCheckbox.disabled = true;
         packageCheckbox.checked = false;
-        packageContainer.classList.add('d-none');
-    } else {
-        senderInput.disabled = false;
-        senderContainer.classList.remove('d-none');
-
-        envelopeInput.disabled = false;
-        envelopeContainer.classList.remove('d-none');
-
-        packageCheckbox.disabled = false;
-        packageContainer.classList.remove('d-none');
     }
-
-    shipimetFormAllFields.forEach(i => {
-        i.classList.remove('is-invalid', 'is-valid');
-    });
 });
 
-// Event Listeners - Modal QR
+// ============= Event Listeners - Modal QR =============
 scanQr.addEventListener('click', () => {
     scanner = new Html5QrcodeScanner("qr-reader", {
         fps: 10,
@@ -486,37 +426,63 @@ scanQr.addEventListener('click', () => {
         showTorchButtonIfSupported: true,
         qrScanSuccess
     });
-
-    scanner.render(qrScanSuccess);
+    scanner.render();
     qrModal.show();
 });
 
-qrModal._element.addEventListener('hide.bs.modal', async function () {
-    if (scanner) {
-        scanner.clear();
-    }
+qrModal._element.addEventListener('hide.bs.modal', async () => {
+    if (scanner) await scanner.clear();
 });
 
-// Event Listeners - Modal Configuración
+// ============= Event Listeners - Modal Impresora =============
 showConfig.addEventListener('click', async () => {
     try {
         const response = await fetch("http://localhost:2811/impresoras");
-        const printerList = await response.json();
+        const data = await response.json();
+        
+        if (!response.ok) {
+            printerSelect.classList.add('d-none');
+            showNotification('error', 'Error al obtener impresoras');
+            return;
+        }
 
-        printerSelect.innerHTML = '';
-
-        printerList.forEach(printer => {
-            printerSelect.innerHTML += `<option value="${printer}">${printer}</option>`;
-        });
-    } catch (e) {
-        console.log(e);
+        printerSelect.innerHTML = data.map(printer => 
+            `<option value="${printer}">${printer}</option>`
+        ).join('');
+    } catch {
+        showNotification('error', 'Servicio de impresión no disponible');
     }
-
-    configModal.show();
+    printerModal.show();
 });
 
 printerButton.addEventListener('click', () => {
-    const selectedPrinter = printerSelect.value;
-    document.cookie = `selectedPrinter=${selectedPrinter};path=/;max-age=31536000`;
+    document.cookie = `selectedPrinter=${printerSelect.value};path=/;max-age=31536000`;
     configModal.hide();
+    showNotification('success', 'Impresora configurada');
 });
+
+// ============= Funciones de Completado =============
+/**
+ * Muestra el modal para confirmar entrega
+ * @param {string} tracking_number - Número de seguimiento
+ */
+async function showComplete(tracking_number) {
+    try {
+        const response = await fetch(`/api/v1/payments_types/`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            showNotification('error', 'Error al obtener métodos de pago');
+            return;
+        }
+
+        trackingTitle.textContent = tracking_number;
+        paymentSelect.innerHTML = data.map(payment => 
+            `<option value="${payment.abbreviation}">${payment.name}</option>`
+        ).join('');
+        
+        completeModal.show();
+    } catch {
+        showNotification('error', 'Error al cargar modal');
+    }
+};

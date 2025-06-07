@@ -24,10 +24,9 @@ const envelopeInput = document.getElementById('envelopeInput');
 
 // Modal de envíos
 const shipmentModal = new bootstrap.Modal(document.getElementById('shipmentModal'));
-const shipmentForm = document.getElementById('shipmentForm');
+const shipmentContainer = document.getElementById('shipmentContainer');
 const shipimetFormAllFields = shipmentForm.querySelectorAll('input, select');
 const shipmentButton = document.getElementById('shipmentButton');
-const shipmentSpinner = document.getElementById('shipmentSpinner');
 
 // Modal QR
 const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
@@ -187,36 +186,37 @@ function initializeTable() {
  */
 function showDetails(data) {
     return `
-    <div class="d-flex flex-column my-2">
-        <div class="text-center mb-3">
-            <h2 class="text-decoration-underline link-offset-1 fs-4">Detalles del envio</h2>
-        </div>
-        <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-md-around mb-3">
-            <div class="shipment-details text-center">
-                <p><strong>Fecha de envio:</strong> ${data.creation_date}</p>
-                <p><strong>Numero de seguimiento:</strong> ${data.tracking_number}</p>
-                <p><strong>Remitente:</strong> ${data.sender}</p>
-                <p><strong>Destinatario:</strong> ${data.recipient}</p>
+        <div class="d-flex flex-column my-2">
+            <div class="text-center mb-3">
+                <h2 class="text-decoration-underline link-offset-1 fs-4">Detalles del envio</h2>
             </div>
-            <div class="shipment-status text-center">
-                <p><strong>Fecha de actualizacion:</strong> ${data.update_date}</p>
-                <p><strong>Numero de telefono:</strong> ${data.phone}</p>
-                <p><strong>Estado:</strong> ${data.status.name}</p>
-                <div class="d-flex gap-2 align-items-center justify-content-center">
-                    <p class="text-decoration-underline link-offset-1 fs-4 m-1">Total:</p>
-                    <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${data.total_amount}</p>
+            <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-md-around mb-3">
+                <div class="shipment-details text-center">
+                    <p><strong>Fecha de envio:</strong> ${data.creation_date}</p>
+                    <p><strong>Numero de seguimiento:</strong> ${data.tracking_number}</p>
+                    <p><strong>Remitente:</strong> ${data.sender}</p>
+                    <p><strong>Destinatario:</strong> ${data.recipient}</p>
+                </div>
+                <div class="shipment-status text-center">
+                    <p><strong>Fecha de actualizacion:</strong> ${data.update_date}</p>
+                    <p><strong>Numero de telefono:</strong> ${data.phone}</p>
+                    <p><strong>Estado:</strong> ${data.status.name}</p>
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                        <p class="text-decoration-underline link-offset-1 fs-4 m-1">Total:</p>
+                        <p class="fs-4 bg-success rounded-pill d-inline-block px-3 text-white m-0">$ ${data.total_amount}</p>
+                    </div>
                 </div>
             </div>
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
+                ${data.status.id === 1 
+                    ? `<button class="btn btn-warning fw-medium" onclick="printQR('${data.tracking_number}')">Reimprimir ticket</button>` 
+                    : ''}
+                ${data.status.id === 3 
+                    ? `<button class="btn btn-success fw-medium" onclick="showComplete('${data.tracking_number}')">Confirmar entrega</button>` 
+                    : ''}
+            </div>
         </div>
-        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
-            ${data.status.id === 1 
-                ? `<button class="btn btn-warning fw-medium" onclick="printQR('${data.tracking_number}')">Reimprimir ticket</button>` 
-                : ''}
-            ${data.status.id === 3 
-                ? `<button class="btn btn-success fw-medium" onclick="showComplete('${data.tracking_number}')">Confirmar entrega</button>` 
-                : ''}
-        </div>
-    </div>`;
+    `;
 };
 
 // ============= Funciones de Impresión =============
@@ -231,16 +231,76 @@ async function printQR(tracking_number) {
         const data = await response.json();
 
         if (!response.ok) {
-            showNotification('error', 'Numero de seguimiento invalido');
+            showNotification('error', 'Numero de seguimiento invalido o inexistente');
             return;
-        }
+        };
 
         // Configurar payload de impresión
         const payload = {
             nombreImpresora: getCookie('selectedPrinter'),
             serial: "YTAwODkxYjhfXzIwMjUtMDUtMTVfXzIwMjUtMDYtMTQjIyNZWkJRNTVZdko3bGJncWVJRXpUNCtxa0VTc1Y0Y1lhbXdhZVJscUI2OVNqME5tOVBNaVppcFdHRjVVVVNKTmQ2OXVoMTZzbHIxY05GMzBDRFVTUnRabC9BRUxqMTdOclNhSngxVjI1bzh2akE3bWRrc3FKdlhTRXB6blZ1NW1xVmN2WWJGZDRFSU1ZSXc1djQ0MU9OU3ROYURtbnMxQXdtRitKN29LOVEvdkQ0aTcrTGZUNTR6d3NlMWlhSk1iMXBUSFpPQ3lsZE9YU0dQME0yV1M1VmdpejJCRGNFemY0dldBOG5sZzlFaWtDVnd0RkMwUThCUVYrTjJtWlVGUUgyampFS1JUTkUvSG16NTgxTWxLK200NXVEWXdKa09RZjVZM0FuMC9TUFN2WGx6ZXl5WjBDSFpIUHp1T2M4WE50ZmlFOHpzcTg2Q0NpUE9Nam9QQjdYeUY0OUwzMWhNQi9xbHFGM0dUT0F5ZGpoa1VIWEozMjAyNkxDQ2djTFNyT0o4ZitPRjRsTlJjSTl1ZFBrNU44emNTcXJFVGVGYzdiQ0ZtRlMxSVRXb25FcUJXKzVHaTJuMWIxWUlVZVBwYkpEbkJmMVR3OXhTMTg4RU81a0JyL1dyYVB1Z1VKelUzYjZFdUpwTW11Z01XU053WmdMM2IwVVR6SXVnQmJ2NnBSaGdlamZWYmEybmozMEVMSVJZN3c1aXB6bjdaN3ZvUXc3VlJLcXVqcmMwV2VrMVV2emRjMjVZdXZhaU0zeU9lUXJ0U3JFWS9ic3hOd1hkcjhKYkdkdStZZHZSSVdQSm5wUzlKcEtBWUNubkhZWnNRc3FTTnFRN2VYWlRXaDljYWt2ai9oOU83SVV1YVkwZmJmQ1NCSXlxSkdwaGdHWHpHbSs5aWZNb21TNnczMD0=",
             operaciones: [
-                // ... (operaciones de impresión)
+                { nombre: "Iniciar", argumentos: [] },
+                { nombre: "EstablecerAlineacion", argumentos: [1] },
+                { nombre: "DescargarImagenDeInternetEImprimir", argumentos: ["https://i.postimg.cc/02PKCgMG/nyc-logo.png", 283, 0, false] },
+                { nombre: "Iniciar", argumentos: [] },
+                { nombre: "Feed", argumentos: [2] },
+                { nombre: "EstablecerTamañoFuente", argumentos: [3, 3] },
+                { nombre: "EstablecerEnfatizado", argumentos: [false] },
+                { nombre: "EstablecerAlineacion", argumentos: [1] },
+                { nombre: "EstablecerSubrayado", argumentos: [false] },
+                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+                { nombre: "EscribirTexto", argumentos: [data.tracking_number] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "Iniciar", argumentos: [] },
+                { nombre: "EstablecerAlineacion", argumentos: [1] },
+                { nombre: "ImprimirCodigoQr", argumentos: [data.tracking_number, 302, 1, 0] },
+                { nombre: "Iniciar", argumentos: [] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
+                { nombre: "EstablecerEnfatizado", argumentos: [false] },
+                { nombre: "EstablecerAlineacion", argumentos: [1] },
+                { nombre: "EstablecerSubrayado", argumentos: [true] },
+                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+                { nombre: "EscribirTexto", argumentos: ["REMITENTE:"] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+                { nombre: "EstablecerEnfatizado", argumentos: [false] },
+                { nombre: "EstablecerAlineacion", argumentos: [1] },
+                { nombre: "EstablecerSubrayado", argumentos: [false] },
+                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+                { nombre: "EscribirTexto", argumentos: [data.sender] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+                { nombre: "EstablecerEnfatizado", argumentos: [false] },
+                { nombre: "EstablecerAlineacion", argumentos: [1] },
+                { nombre: "EstablecerSubrayado", argumentos: [true] },
+                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+                { nombre: "EscribirTexto", argumentos: ["DESTINATARIO:"] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+                { nombre: "EstablecerEnfatizado", argumentos: [false] },
+                { nombre: "EstablecerAlineacion", argumentos: [1] },
+                { nombre: "EstablecerSubrayado", argumentos: [false] },
+                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+                { nombre: "EscribirTexto", argumentos: [data.recipient] },
+                { nombre: "Feed", argumentos: [1] },
+                { nombre: "Feed", argumentos: [7] },
+                { nombre: "CorteParcial", argumentos: [] }
             ]
         };
 
@@ -253,14 +313,14 @@ async function printQR(tracking_number) {
         const printData = await printResponse.json();
 
         if (!printData.ok) {
-            showNotification('error', 'Error al imprimir el ticket');
+            showNotification('error', 'Error al imprimir el ticket, reimprima manualmente');
             return;
-        }
+        };
 
         showNotification('success', 'Ticket impreso correctamente');
     } catch {
-        showNotification('error', 'Error en el servicio de impresion');
-    }
+        showNotification('error', 'Error en el servicio de impresion, contacte con un administrador');
+    };
 };
 
 // ============= Funciones de Escaneo QR =============
@@ -308,13 +368,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ============= Event Listeners - Modal de Envíos =============
 showShipment.addEventListener('click', async () => {
+    showShipment.classList.add('disabled');
+
     try {
         const response = await fetch('/api/v1/packages_categories/');
         const data = await response.json();
 
-        if (!response.ok) throw new Error();
+        if (!response.ok) {
+            shipmentContainer.innerHTML = `
+                <p class="fw-semibold text-center text-danger m-0 px-5">Error al obtener lista de categorias, contacte un administrador</p>
+            `;
+            showNotification('error', 'Error al obtener categorias, contacte un administrador');
+            return;
+        };
 
-        // Llenar selects con datos de la API
         typeSelect.innerHTML = data.package_types.map(type => 
             `<option value="${type.id}">${type.name}</option>`
         ).join('');
@@ -325,8 +392,10 @@ showShipment.addEventListener('click', async () => {
 
         shipmentModal.show();
     } catch {
-        showNotification('error', 'Error cargando categorías');
-    }
+        showNotification('error', 'Error al cargar categorias, reintente de nuevo');
+    } finally {
+        showShipment.classList.remove('disabled');
+    };
 });
 
 shipmentButton.addEventListener('click', async () => {
@@ -436,6 +505,7 @@ qrModal._element.addEventListener('hide.bs.modal', async () => {
 
 // ============= Event Listeners - Modal Impresora =============
 showConfig.addEventListener('click', async () => {
+    const printerSelect = document.getElementById('printerSelect');
     showConfig.classList.add('disabled');
 
     try {
@@ -443,21 +513,24 @@ showConfig.addEventListener('click', async () => {
         const data = await response.json();
         
         if (!response.ok || !data.length) {
-            printerContainer.innerHTML = `<p class="fw-semibold text-center text-danger m-0 px-5">Error al obtener impresoras disponibles reintente nuevamente</p>`;
+            printerContainer.innerHTML = `
+                <p class="fw-semibold text-center text-danger m-0 px-5">Error al obtener impresoras disponibles, reintente nuevamente</p>
+                <div class="d-flex justify-content-center">
+                    <p class="">${response.statusText}</p>
+                </div>
+            `;
             printerButton.classList.add('disabled');
             showNotification('error', 'Error al obtener impresoras');
             return; 
         };
 
-        printerContainer.innerHTML = `
-        <select class="form-select fw-medium shadow-sm p-3" id="printerSelect">
-            ${data.map(printer => `
-                <option value="${printer}">🖨️ ${printer}</option>
-            `).join('')}
-        </select>
-    `;
+        printerSelect.innerHTML = data.map(printer => 
+            `<option value="${printer}">🖨️ ${printer}</option>`
+        ).join('');
     } catch {
-        printerContainer.innerHTML = `<p class="fw-semibold text-center text-danger m-0 px-5">Error en el servicio de impresion contacte con un administrador</p>`;
+        printerContainer.innerHTML = `
+            <p class="fw-semibold text-center text-danger m-0 px-5">Error en el servicio de impresion, contacte con un administrador</p>
+        `;
         printerButton.classList.add('disabled');
         showNotification('error', 'Servicio de impresion no disponible');
     } finally {
@@ -469,8 +542,8 @@ showConfig.addEventListener('click', async () => {
 printerButton.addEventListener('click', () => {
     printerButton.classList.add('disabled');
 
-    const printerSaved = getCookie('selectedPrinter');
     const printerSelected = document.getElementById('printerSelect').value;
+    const printerSaved = getCookie('selectedPrinter');
 
     document.cookie = `selectedPrinter=${printerSelected};path=/;max-age=31536000`;
 

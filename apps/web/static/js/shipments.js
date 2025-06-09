@@ -10,10 +10,6 @@ const showConfig = document.getElementById('showConfig');
 const scanQr = document.getElementById('scanQr');
 const showShipment = document.getElementById('showShipment');
 
-// Formulario de envíos
-const typeSelect = document.getElementById('typeSelect');
-const priceSelect = document.getElementById('priceSelect');
-
 // Contenedores y campos
 const packageContainer = document.getElementById('packageContainer');
 const packageCheckbox = document.getElementById('packageCheckbox');
@@ -26,6 +22,8 @@ const envelopeInput = document.getElementById('envelopeInput');
 const shipmentModal = new bootstrap.Modal(document.getElementById('shipmentModal'));
 const shipmentForm = document.getElementById('shipmentForm');
 const shipimetFormAllFields = shipmentForm.querySelectorAll('input, select');
+const typeSelect = document.getElementById('typeSelect');
+const priceSelect = document.getElementById('priceSelect');
 const shipmentContainer = document.getElementById('shipmentContainer');
 const shipmentButton = document.getElementById('shipmentButton');
 
@@ -386,24 +384,27 @@ showShipment.addEventListener('click', async () => {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(response.statusText);
+            throw new Error('Error al obtener precios y tipos de paquetes');
         };
 
-        typeSelect.innerHTML = data.package_types.map(type => 
+        typeSelect.innerHTML = data.package_types.data.map(type => 
             `<option value="${type.id}">${type.name}</option>`
         ).join('');
         
-        priceSelect.innerHTML = data.package_prices.map(price => 
+        priceSelect.innerHTML = data.package_prices.data.map(price => 
             `<option value="${price.id}">${price.name} - $${price.mount}</option>`
         ).join('');
     } catch (error) {
-        console.log(error);
         shipmentButton.classList.add('disabled');
         shipmentForm.classList.add('d-none');
-        shipmentContainer.innerHTML = `
-            <p class="fw-semibold text-center text-danger m-0 px-5"></p>
-        `;
-        showNotification('error', error.message);
+        
+        errorMessage = error.message;
+        
+        if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servidor";
+
+        shipmentContainer.innerHTML = `<p class="text-danger text-center fw-semibold my-2">${errorMessage}</p>`;
+
+        showNotification('error', "Error al obtener datos");
     } finally {
         showShipment.classList.remove('disabled');
         shipmentModal.show();
@@ -467,10 +468,11 @@ shipmentButton.addEventListener('click', async () => {
 
 // Reset del modal al cerrarse
 shipmentModal._element.addEventListener('hidden.bs.modal', function () {
-    printerContainer.innerHTML = '';
     shipmentForm.reset();
     shipimetFormAllFields.forEach(field => field.classList.remove('is-invalid', 'is-valid'));
     shipmentForm.classList.remove('d-none');
+    printerContainer.innerHTML = '';
+    shipmentButton.classList.remove('disabled');
 
     senderInput.disabled = false;
     senderContainer.classList.remove('d-none');
@@ -531,7 +533,7 @@ showConfig.addEventListener('click', async () => {
             `<option value="${printer}">🖨️ ${printer}</option>`
         ).join('');
     
-        printerError.textContent = '';
+        printerContainer.textContent = '';
         printerSelect.classList.remove('d-none');
         printerButton.classList.remove('disabled');
     } catch (error) {
@@ -542,7 +544,7 @@ showConfig.addEventListener('click', async () => {
         
         if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servicio de impresion";
         
-        printerError.innerHTML = `<p class="text-danger text-center fw-semibold my-2">${errorMessage}</p>`;
+        printerContainer.innerHTML = `<p class="text-danger text-center fw-semibold my-2">${errorMessage}</p>`;
 
         showNotification('error', 'Error al obtener impresoras');
     } finally {
@@ -562,7 +564,7 @@ printerButton.addEventListener('click', () => {
 });
 
 printerModal._element.addEventListener('hidden.bs.modal', () => {
-    printerError.innerHTML = '';
+    printerContainer.innerHTML = '';
     printerSelect.classList.remove('d-none');
     printerButton.classList.remove('disabled');
     printerSelect.selectedIndex = 0;

@@ -7,6 +7,7 @@ from .serializers import (
     PackagePricesSerializer, PackageTypesSerializer, PaymentsTypesSerializer
 )
 
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
@@ -89,27 +90,61 @@ class CreateShipmentView(APIView):
 
 class SearchShipmentView(APIView):
     def get(self, request, tracking_number):
-        shipment = get_object_or_404(Shipments, tracking_number=tracking_number)
-        serializer = ShipmentSearchSerializer(shipment)
-        return Response(serializer.data)
+        try:
+            shipment = Shipments.objects.get(tracking_number=tracking_number)
+            serializer = ShipmentSearchSerializer(shipment)
+
+            return Response({
+                    'status': 'success',
+                    'message': 'Operacion exitosa',
+                    'shipment': serializer.data
+                }, status=status.HTTP_200_OK
+            )
+        except Shipments.DoesNotExist:
+            return Response({
+                    'status': 'error',
+                    'message': f'No se encontro ningun paquete con el numero de seguimiento {tracking_number}'
+                }, status=status.HTTP_404_NOT_FOUND
+            )
 
 class PackagesCategoriesView(APIView):
     def get(self, request):
         package_types = PackageTypes.objects.all()
         package_prices = PackagePrices.objects.all()
+        
+        has_types = package_types.exists()
+        has_prices = package_prices.exists()
+        
+        package_types_data = PackageTypesSerializer(package_types, many=True).data if has_types else None
+        package_prices_data = PackagePricesSerializer(package_prices, many=True).data if has_prices else None
 
         return Response({
-            'package_types': PackageTypesSerializer(package_types, many=True).data,
-            'package_prices': PackagePricesSerializer(package_prices, many=True).data
-        })
+            'package_types': {
+                'message': 'Tipo de paquetes' if has_types else 'Error en la operacion',
+                'status': 'success' if has_types else 'error',
+                'data': package_types_data if has_types else 'No se encontraron tipos de paquetes'
+            },
+            'package_prices': {
+                'message': 'Precios de paquetes' if has_prices else 'Error en la operacion',
+                'status': 'success' if has_prices else 'error',
+                'data': package_prices_data if has_prices else 'No se encontraron precios de paquetes'
+            }
+        }, status=status.HTTP_200_OK)
 
 class PaymentsTypesView(APIView):
     def get(self, request):
         payments_types = PaymentsTypes.objects.all()
 
+        has_payments = payments_types.exists()
+
+        payments_types_data = PaymentsTypesSerializer(payments_types, many=True).data if has_payments else None
+
         return Response({
-            'payment_types': PaymentsTypesSerializer(payments_types, many=True).data
-        })
+                'message': 'Tipos de pagos' if has_payments else 'Error en la operacion',
+                'status':'success' if has_payments else 'error',
+                'data': payments_types_data if has_payments else 'No se encontraron tipos de pagos'
+            }, status=status.HTTP_200_OK
+        )
 
 class UpdateShipmentStatusView(APIView):
     def post(self, request, tracking_number):
@@ -154,24 +189,34 @@ class UpdateShipmentStatusView(APIView):
 class CompleteShipmentView(APIView):
     def post(self, request, tracking_number):
         try:
-            shipment = get_object_or_404(Shipments, tracking_number=tracking_number)
-            status_code = 200
-
+            shipment = Shipments.objects.get(tracking_number=tracking_number)
             current_status = shipment.status.id
 
-            if current_status == 3:
+            if current_status == 4:
+                return Response({
+                        'error': 'error',
+                        'message': f'El paquete {tracking_number} ya fue entregado'
+                    }, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if current_status != 3:
+                return Response({
+                       'status':'error',
+                       'message': f'El paquete {tracking_number} no esta listo para ser entregado'
+                    }, status=status.HTTP_400_BAD_REQUEST
+                )
+            else:
                 shipment.status_id = 4
                 shipment.save()
-                result = f'Se completo la entrega del paquete: {tracking_number}'
-            else:
-                result = f'El paquete {tracking_number} no se encuentra listo para ser entregado'
-                status_code = 400
+                return Response({
+                        'status': 'success',
+                        'message': f'El paquete {tracking_number} fue entregado correctamente'
+                    }, status=status.HTTP_200_OK
+                )
 
+        except Shipments.DoesNotExist:
             return Response({
-               'message': result},
-                status=status_code) 
-        except Http404:
-            return Response({
-               'message': f'No se encontro ningun paquete con el numero de tracking: {tracking_number}'},
-                status=404
+                    'error': 'error',
+                    'message': f'No se encontro ningun paquete con el numero de seguimiento {tracking_number}'
+                }, status=status.HTTP_404_NOT_FOUND
             )

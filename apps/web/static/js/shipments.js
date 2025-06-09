@@ -24,8 +24,9 @@ const envelopeInput = document.getElementById('envelopeInput');
 
 // Modal de envíos
 const shipmentModal = new bootstrap.Modal(document.getElementById('shipmentModal'));
-const shipmentContainer = document.getElementById('shipmentContainer');
+const shipmentForm = document.getElementById('shipmentForm');
 const shipimetFormAllFields = shipmentForm.querySelectorAll('input, select');
+const shipmentContainer = document.getElementById('shipmentContainer');
 const shipmentButton = document.getElementById('shipmentButton');
 
 // Modal QR
@@ -34,6 +35,7 @@ const qrSpinner = document.getElementById('qrSpinner');
 
 // Modal de configuración
 const printerModal = new bootstrap.Modal(document.getElementById('printerModal'));
+const printerSelect = document.getElementById('printerSelect');
 const printerContainer = document.getElementById('printerContainer');
 const printerButton = document.getElementById('printerButton');
 
@@ -225,102 +227,111 @@ function showDetails(data) {
  * @param {string} tracking_number - Número de seguimiento del envío
  */
 async function printQR(tracking_number) {
+    let data;
+
     try {
-        // Obtener datos del envío
         const response = await fetch(`/api/v1/search_shipment/${tracking_number}/`);
         const data = await response.json();
 
         if (!response.ok) {
-            showNotification('error', 'Numero de seguimiento invalido o inexistente');
-            return;
-        };
+            throw new Error(data.message);
+        }
 
-        // Configurar payload de impresión
-        const payload = {
-            nombreImpresora: getCookie('selectedPrinter'),
-            serial: "YTAwODkxYjhfXzIwMjUtMDUtMTVfXzIwMjUtMDYtMTQjIyNZWkJRNTVZdko3bGJncWVJRXpUNCtxa0VTc1Y0Y1lhbXdhZVJscUI2OVNqME5tOVBNaVppcFdHRjVVVVNKTmQ2OXVoMTZzbHIxY05GMzBDRFVTUnRabC9BRUxqMTdOclNhSngxVjI1bzh2akE3bWRrc3FKdlhTRXB6blZ1NW1xVmN2WWJGZDRFSU1ZSXc1djQ0MU9OU3ROYURtbnMxQXdtRitKN29LOVEvdkQ0aTcrTGZUNTR6d3NlMWlhSk1iMXBUSFpPQ3lsZE9YU0dQME0yV1M1VmdpejJCRGNFemY0dldBOG5sZzlFaWtDVnd0RkMwUThCUVYrTjJtWlVGUUgyampFS1JUTkUvSG16NTgxTWxLK200NXVEWXdKa09RZjVZM0FuMC9TUFN2WGx6ZXl5WjBDSFpIUHp1T2M4WE50ZmlFOHpzcTg2Q0NpUE9Nam9QQjdYeUY0OUwzMWhNQi9xbHFGM0dUT0F5ZGpoa1VIWEozMjAyNkxDQ2djTFNyT0o4ZitPRjRsTlJjSTl1ZFBrNU44emNTcXJFVGVGYzdiQ0ZtRlMxSVRXb25FcUJXKzVHaTJuMWIxWUlVZVBwYkpEbkJmMVR3OXhTMTg4RU81a0JyL1dyYVB1Z1VKelUzYjZFdUpwTW11Z01XU053WmdMM2IwVVR6SXVnQmJ2NnBSaGdlamZWYmEybmozMEVMSVJZN3c1aXB6bjdaN3ZvUXc3VlJLcXVqcmMwV2VrMVV2emRjMjVZdXZhaU0zeU9lUXJ0U3JFWS9ic3hOd1hkcjhKYkdkdStZZHZSSVdQSm5wUzlKcEtBWUNubkhZWnNRc3FTTnFRN2VYWlRXaDljYWt2ai9oOU83SVV1YVkwZmJmQ1NCSXlxSkdwaGdHWHpHbSs5aWZNb21TNnczMD0=",
-            operaciones: [
-                { nombre: "Iniciar", argumentos: [] },
-                { nombre: "EstablecerAlineacion", argumentos: [1] },
-                { nombre: "DescargarImagenDeInternetEImprimir", argumentos: ["https://i.postimg.cc/02PKCgMG/nyc-logo.png", 283, 0, false] },
-                { nombre: "Iniciar", argumentos: [] },
-                { nombre: "Feed", argumentos: [2] },
-                { nombre: "EstablecerTamañoFuente", argumentos: [3, 3] },
-                { nombre: "EstablecerEnfatizado", argumentos: [false] },
-                { nombre: "EstablecerAlineacion", argumentos: [1] },
-                { nombre: "EstablecerSubrayado", argumentos: [false] },
-                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-                { nombre: "EscribirTexto", argumentos: [data.tracking_number] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "Iniciar", argumentos: [] },
-                { nombre: "EstablecerAlineacion", argumentos: [1] },
-                { nombre: "ImprimirCodigoQr", argumentos: [data.tracking_number, 302, 1, 0] },
-                { nombre: "Iniciar", argumentos: [] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
-                { nombre: "EstablecerEnfatizado", argumentos: [false] },
-                { nombre: "EstablecerAlineacion", argumentos: [1] },
-                { nombre: "EstablecerSubrayado", argumentos: [true] },
-                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-                { nombre: "EscribirTexto", argumentos: ["REMITENTE:"] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
-                { nombre: "EstablecerEnfatizado", argumentos: [false] },
-                { nombre: "EstablecerAlineacion", argumentos: [1] },
-                { nombre: "EstablecerSubrayado", argumentos: [false] },
-                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-                { nombre: "EscribirTexto", argumentos: [data.sender] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
-                { nombre: "EstablecerEnfatizado", argumentos: [false] },
-                { nombre: "EstablecerAlineacion", argumentos: [1] },
-                { nombre: "EstablecerSubrayado", argumentos: [true] },
-                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-                { nombre: "EscribirTexto", argumentos: ["DESTINATARIO:"] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
-                { nombre: "EstablecerEnfatizado", argumentos: [false] },
-                { nombre: "EstablecerAlineacion", argumentos: [1] },
-                { nombre: "EstablecerSubrayado", argumentos: [false] },
-                { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
-                { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
-                { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-                { nombre: "EscribirTexto", argumentos: [data.recipient] },
-                { nombre: "Feed", argumentos: [1] },
-                { nombre: "Feed", argumentos: [7] },
-                { nombre: "CorteParcial", argumentos: [] }
-            ]
-        };
+        data = data.shipment;
+    } catch (error) {
+        errorMessage = error.message;
 
-        // Enviar a servicio de impresión
-        const printResponse = await fetch("http://localhost:2811/imprimir", {
+        if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar con el servidor";
+        showNotification('error', errorMessage);
+        return;
+    }
+
+    const payload = {
+        nombreImpresora: getCookie('selectedPrinter'),
+        serial: "YTAwODkxYjhfXzIwMjUtMDUtMTVfXzIwMjUtMDYtMTQjIyNZWkJRNTVZdko3bGJncWVJRXpUNCtxa0VTc1Y0Y1lhbXdhZVJscUI2OVNqME5tOVBNaVppcFdHRjVVVVNKTmQ2OXVoMTZzbHIxY05GMzBDRFVTUnRabC9BRUxqMTdOclNhSngxVjI1bzh2akE3bWRrc3FKdlhTRXB6blZ1NW1xVmN2WWJGZDRFSU1ZSXc1djQ0MU9OU3ROYURtbnMxQXdtRitKN29LOVEvdkQ0aTcrTGZUNTR6d3NlMWlhSk1iMXBUSFpPQ3lsZE9YU0dQME0yV1M1VmdpejJCRGNFemY0dldBOG5sZzlFaWtDVnd0RkMwUThCUVYrTjJtWlVGUUgyampFS1JUTkUvSG16NTgxTWxLK200NXVEWXdKa09RZjVZM0FuMC9TUFN2WGx6ZXl5WjBDSFpIUHp1T2M4WE50ZmlFOHpzcTg2Q0NpUE9Nam9QQjdYeUY0OUwzMWhNQi9xbHFGM0dUT0F5ZGpoa1VIWEozMjAyNkxDQ2djTFNyT0o4ZitPRjRsTlJjSTl1ZFBrNU44emNTcXJFVGVGYzdiQ0ZtRlMxSVRXb25FcUJXKzVHaTJuMWIxWUlVZVBwYkpEbkJmMVR3OXhTMTg4RU81a0JyL1dyYVB1Z1VKelUzYjZFdUpwTW11Z01XU053WmdMM2IwVVR6SXVnQmJ2NnBSaGdlamZWYmEybmozMEVMSVJZN3c1aXB6bjdaN3ZvUXc3VlJLcXVqcmMwV2VrMVV2emRjMjVZdXZhaU0zeU9lUXJ0U3JFWS9ic3hOd1hkcjhKYkdkdStZZHZSSVdQSm5wUzlKcEtBWUNubkhZWnNRc3FTTnFRN2VYWlRXaDljYWt2ai9oOU83SVV1YVkwZmJmQ1NCSXlxSkdwaGdHWHpHbSs5aWZNb21TNnczMD0=",
+        operaciones: [
+            { nombre: "Iniciar", argumentos: [] },
+            { nombre: "EstablecerAlineacion", argumentos: [1] },
+            { nombre: "DescargarImagenDeInternetEImprimir", argumentos: ["https://i.postimg.cc/02PKCgMG/nyc-logo.png", 283, 0, false] },
+            { nombre: "Iniciar", argumentos: [] },
+            { nombre: "Feed", argumentos: [2] },
+            { nombre: "EstablecerTamañoFuente", argumentos: [3, 3] },
+            { nombre: "EstablecerEnfatizado", argumentos: [false] },
+            { nombre: "EstablecerAlineacion", argumentos: [1] },
+            { nombre: "EstablecerSubrayado", argumentos: [false] },
+            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+            { nombre: "EscribirTexto", argumentos: [data.tracking_number] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "Iniciar", argumentos: [] },
+            { nombre: "EstablecerAlineacion", argumentos: [1] },
+            { nombre: "ImprimirCodigoQr", argumentos: [data.tracking_number, 302, 1, 0] },
+            { nombre: "Iniciar", argumentos: [] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
+            { nombre: "EstablecerEnfatizado", argumentos: [false] },
+            { nombre: "EstablecerAlineacion", argumentos: [1] },
+            { nombre: "EstablecerSubrayado", argumentos: [true] },
+            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+            { nombre: "EscribirTexto", argumentos: ["REMITENTE:"] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+            { nombre: "EstablecerEnfatizado", argumentos: [false] },
+            { nombre: "EstablecerAlineacion", argumentos: [1] },
+            { nombre: "EstablecerSubrayado", argumentos: [false] },
+            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+            { nombre: "EscribirTexto", argumentos: [data.sender] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+            { nombre: "EstablecerEnfatizado", argumentos: [false] },
+            { nombre: "EstablecerAlineacion", argumentos: [1] },
+            { nombre: "EstablecerSubrayado", argumentos: [true] },
+            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+            { nombre: "EscribirTexto", argumentos: ["DESTINATARIO:"] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+            { nombre: "EstablecerEnfatizado", argumentos: [false] },
+            { nombre: "EstablecerAlineacion", argumentos: [1] },
+            { nombre: "EstablecerSubrayado", argumentos: [false] },
+            { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
+            { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
+            { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
+            { nombre: "EscribirTexto", argumentos: [data.recipient] },
+            { nombre: "Feed", argumentos: [1] },
+            { nombre: "Feed", argumentos: [7] },
+            { nombre: "CorteParcial", argumentos: [] }
+        ]
+    };
+
+    try {
+        const response = await fetch("http://localhost:2811/imprimir", {
             method: "POST",
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        const printData = await printResponse.json();
+        const data = await response.json();
+        
+        if (!data.ok) {
+            throw new Error("Error al imprimir el ticket");
+        }
 
-        if (!printData.ok) {
-            showNotification('error', 'Error al imprimir el ticket, reimprima manualmente');
-            return;
-        };
+        showNotification('success', "Impresion de ticket en curso");
+    } catch (error) {
+        errorMessage = error.message;
 
-        showNotification('success', 'Ticket impreso correctamente');
-    } catch {
-        showNotification('error', 'Error en el servicio de impresion, contacte con un administrador');
-    };
+        if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar con el servidor";
+        showNotification('error', errorMessage);
+    }
 };
 
 // ============= Funciones de Escaneo QR =============
@@ -375,11 +386,7 @@ showShipment.addEventListener('click', async () => {
         const data = await response.json();
 
         if (!response.ok) {
-            shipmentContainer.innerHTML = `
-                <p class="fw-semibold text-center text-danger m-0 px-5">Error al obtener lista de categorias, contacte un administrador</p>
-            `;
-            showNotification('error', 'Error al obtener categorias, contacte un administrador');
-            return;
+            throw new Error(response.statusText);
         };
 
         typeSelect.innerHTML = data.package_types.map(type => 
@@ -389,19 +396,23 @@ showShipment.addEventListener('click', async () => {
         priceSelect.innerHTML = data.package_prices.map(price => 
             `<option value="${price.id}">${price.name} - $${price.mount}</option>`
         ).join('');
-
-        shipmentModal.show();
-    } catch {
-        showNotification('error', 'Error al cargar categorias, reintente de nuevo');
+    } catch (error) {
+        console.log(error);
+        shipmentButton.classList.add('disabled');
+        shipmentForm.classList.add('d-none');
+        shipmentContainer.innerHTML = `
+            <p class="fw-semibold text-center text-danger m-0 px-5"></p>
+        `;
+        showNotification('error', error.message);
     } finally {
         showShipment.classList.remove('disabled');
+        shipmentModal.show();
     };
 });
 
 shipmentButton.addEventListener('click', async () => {
     shipmentButton.classList.add('disabled');
     shipmentForm.classList.add('d-none');
-    shipmentSpinner.classList.remove('d-none');
 
     try {
         const formData = new FormData(shipmentForm);
@@ -456,7 +467,11 @@ shipmentButton.addEventListener('click', async () => {
 
 // Reset del modal al cerrarse
 shipmentModal._element.addEventListener('hidden.bs.modal', function () {
+    printerContainer.innerHTML = '';
     shipmentForm.reset();
+    shipimetFormAllFields.forEach(field => field.classList.remove('is-invalid', 'is-valid'));
+    shipmentForm.classList.remove('d-none');
+
     senderInput.disabled = false;
     senderContainer.classList.remove('d-none');
     envelopeInput.disabled = false;
@@ -465,8 +480,6 @@ shipmentModal._element.addEventListener('hidden.bs.modal', function () {
     packageContainer.classList.remove('d-none');
     typeSelect.innerHTML = '';
     priceSelect.innerHTML = '';
-    
-    shipimetFormAllFields.forEach(i => i.classList.remove('is-invalid', 'is-valid'));
 });
 
 // Cambio en tipo de paquete
@@ -504,62 +517,55 @@ qrModal._element.addEventListener('hide.bs.modal', async () => {
 });
 
 // ============= Event Listeners - Modal Impresora =============
+
 showConfig.addEventListener('click', async () => {
-    const printerSelect = document.getElementById('printerSelect');
     showConfig.classList.add('disabled');
 
     try {
         const response = await fetch("http://localhost:2811/impresoras");
         const data = await response.json();
-        
-        if (!response.ok || !data.length) {
-            printerContainer.innerHTML = `
-                <p class="fw-semibold text-center text-danger m-0 px-5">Error al obtener impresoras disponibles, reintente nuevamente</p>
-                <div class="d-flex justify-content-center">
-                    <p class="">${response.statusText}</p>
-                </div>
-            `;
-            printerButton.classList.add('disabled');
-            showNotification('error', 'Error al obtener impresoras');
-            return; 
-        };
+    
+        if (!data?.length) throw new Error("No se encontraron impresoras disponibles");
 
         printerSelect.innerHTML = data.map(printer => 
             `<option value="${printer}">🖨️ ${printer}</option>`
         ).join('');
-    } catch {
-        printerContainer.innerHTML = `
-            <p class="fw-semibold text-center text-danger m-0 px-5">Error en el servicio de impresion, contacte con un administrador</p>
-        `;
+    
+        printerError.textContent = '';
+        printerSelect.classList.remove('d-none');
+        printerButton.classList.remove('disabled');
+    } catch (error) {
+        printerSelect.classList.add('d-none');
         printerButton.classList.add('disabled');
-        showNotification('error', 'Servicio de impresion no disponible');
+        
+        errorMessage = error.message;
+        
+        if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servicio de impresion";
+        
+        printerError.innerHTML = `<p class="text-danger text-center fw-semibold my-2">${errorMessage}</p>`;
+
+        showNotification('error', 'Error al obtener impresoras');
     } finally {
         showConfig.classList.remove('disabled');
         printerModal.show();
-    };
+    }
 });
 
 printerButton.addEventListener('click', () => {
     printerButton.classList.add('disabled');
-
-    const printerSelected = document.getElementById('printerSelect').value;
-    const printerSaved = getCookie('selectedPrinter');
+    const printerSelected = printerSelect.value;
 
     document.cookie = `selectedPrinter=${printerSelected};path=/;max-age=31536000`;
-
-    if (!printerSaved === printerSelected) {
-        showNotification('error', 'Error al configurar impresora');
-        printerButton.classList.remove('disabled');
-        return;
-    };
 
     showNotification('success', 'Impresora configurada correctamente');
     printerModal.hide();
 });
 
 printerModal._element.addEventListener('hidden.bs.modal', () => {
-    printerContainer.innerHTML = '';
+    printerError.innerHTML = '';
+    printerSelect.classList.remove('d-none');
     printerButton.classList.remove('disabled');
+    printerSelect.selectedIndex = 0;
 });
 
 // ============= Funciones de Completado =============

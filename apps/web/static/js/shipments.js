@@ -225,7 +225,7 @@ function showDetails(data) {
  * @param {string} tracking_number - Número de seguimiento del envío
  */
 async function printQR(tracking_number) {
-    let data;
+    let shipmentData;
 
     try {
         const response = await fetch(`/api/v1/search_shipment/${tracking_number}/`);
@@ -235,9 +235,9 @@ async function printQR(tracking_number) {
             throw new Error(data.message);
         }
 
-        data = data.shipment;
+        shipmentData = result.shipment;
     } catch (error) {
-        errorMessage = error.message;
+        let errorMessage = error.message;
 
         if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar con el servidor";
         showNotification('error', errorMessage);
@@ -260,12 +260,12 @@ async function printQR(tracking_number) {
             { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
             { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
             { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [data.tracking_number] },
+            { nombre: "EscribirTexto", argumentos: [shipmentData.tracking_number] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Iniciar", argumentos: [] },
             { nombre: "EstablecerAlineacion", argumentos: [1] },
-            { nombre: "ImprimirCodigoQr", argumentos: [data.tracking_number, 302, 1, 0] },
+            { nombre: "ImprimirCodigoQr", argumentos: [shipmentData.tracking_number, 302, 1, 0] },
             { nombre: "Iniciar", argumentos: [] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
@@ -278,17 +278,17 @@ async function printQR(tracking_number) {
             { nombre: "EscribirTexto", argumentos: ["REMITENTE:"] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Feed", argumentos: [1] },
-            { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+            { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
             { nombre: "EstablecerEnfatizado", argumentos: [false] },
             { nombre: "EstablecerAlineacion", argumentos: [1] },
             { nombre: "EstablecerSubrayado", argumentos: [false] },
             { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
             { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
             { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [data.sender] },
+            { nombre: "EscribirTexto", argumentos: [shipmentData.sender] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Feed", argumentos: [1] },
-            { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+            { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
             { nombre: "EstablecerEnfatizado", argumentos: [false] },
             { nombre: "EstablecerAlineacion", argumentos: [1] },
             { nombre: "EstablecerSubrayado", argumentos: [true] },
@@ -298,14 +298,14 @@ async function printQR(tracking_number) {
             { nombre: "EscribirTexto", argumentos: ["DESTINATARIO:"] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Feed", argumentos: [1] },
-            { nombre: "EstablecerTamaÃ±oFuente", argumentos: [2, 2] },
+            { nombre: "EstablecerTamañoFuente", argumentos: [2, 2] },
             { nombre: "EstablecerEnfatizado", argumentos: [false] },
             { nombre: "EstablecerAlineacion", argumentos: [1] },
             { nombre: "EstablecerSubrayado", argumentos: [false] },
             { nombre: "EstablecerImpresionAlReves", argumentos: [false] },
             { nombre: "EstablecerImpresionBlancoYNegroInversa", argumentos: [false] },
             { nombre: "EstablecerRotacionDe90Grados", argumentos: [false] },
-            { nombre: "EscribirTexto", argumentos: [data.recipient] },
+            { nombre: "EscribirTexto", argumentos: [shipmentData.recipient] },
             { nombre: "Feed", argumentos: [1] },
             { nombre: "Feed", argumentos: [7] },
             { nombre: "CorteParcial", argumentos: [] }
@@ -325,7 +325,7 @@ async function printQR(tracking_number) {
 
         showNotification('success', "Impresion de ticket en curso");
     } catch (error) {
-        errorMessage = error.message;
+        let errorMessage = error.message;
 
         if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar con el servidor";
         showNotification('error', errorMessage);
@@ -398,7 +398,7 @@ showShipment.addEventListener('click', async () => {
         shipmentButton.classList.add('disabled');
         shipmentForm.classList.add('d-none');
         
-        errorMessage = error.message;
+        let errorMessage = error.message;
         
         if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servidor";
 
@@ -462,7 +462,6 @@ shipmentButton.addEventListener('click', async () => {
     } finally {
         shipmentButton.classList.remove('disabled');
         shipmentForm.classList.remove('d-none');
-        shipmentSpinner.classList.add('d-none');
     }
 });
 
@@ -540,7 +539,7 @@ showConfig.addEventListener('click', async () => {
         printerSelect.classList.add('d-none');
         printerButton.classList.add('disabled');
         
-        errorMessage = error.message;
+        let errorMessage = error.message;
         
         if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servicio de impresion";
         

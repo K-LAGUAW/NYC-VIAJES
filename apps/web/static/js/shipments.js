@@ -2,13 +2,19 @@
 const notificationQueue = []; // Cola de notificaciones pendientes
 let scanner; // Instancia del escáner QR
 let table; // Instancia de la tabla DataTable
+let trackingConfirm;
 let isShowingNotification = false; // Control de visualización de notificaciones
+let optionsShow = true;
 
 // ============= Elementos del DOM =============
 // Botones principales
 const showConfig = document.getElementById('showConfig');
-const scanQr = document.getElementById('scanQr');
 const showShipment = document.getElementById('showShipment');
+const showOptions = document.getElementById('showOptions');
+const scanQr = document.getElementById('scanQr');
+
+const optionsModule = document.getElementById('optionsModule');
+const optionsContainer = document.getElementById('optionsContainer');
 
 // Contenedores y campos
 const packageContainer = document.getElementById('packageContainer');
@@ -37,10 +43,11 @@ const printerSelect = document.getElementById('printerSelect');
 const printerContainer = document.getElementById('printerContainer');
 const printerButton = document.getElementById('printerButton');
 
-// Modal de completado
-const completeModal = new bootstrap.Modal(document.getElementById('completeModal'));
-const trackingTitle = document.getElementById('trackingTitle');
+const deliveryModal = new bootstrap.Modal(document.getElementById('deliveryModal'));
+const deliveryContainer = document.getElementById('deliveryContainer');
 const paymentSelect = document.getElementById('paymentSelect');
+const trackingTitle = document.getElementById('trackingTitle');
+const deliveryButton = document.getElementById('deliveryButton');
 
 // ============= Funciones Utilitarias =============
 /**
@@ -103,28 +110,7 @@ function showNotification(type, title, message, time = 2000) {
  * Completa el estado de un envío marcándolo como entregado
  * @param {string} tracking_number - Número de seguimiento del envío
  */
-async function completeShipment(tracking_number) {
-    try {
-        const response = await fetch(`/api/v1/complete_shipment/${tracking_number}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        });
-        const data = await response.json();
 
-        if (!response.ok) {
-            showNotification('error', data.message);
-            return;
-        }
-
-        showNotification('success', data.message);
-        table.ajax.reload();
-    } catch (error) {
-        showNotification('error', 'Error al completar la entrega del envío');
-    }
-}
 
 // ============= Funciones de Tabla =============
 /**
@@ -212,7 +198,7 @@ function showDetails(data) {
                     ? `<button class="btn btn-warning fw-medium" onclick="printQR('${data.tracking_number}')">Reimprimir ticket</button>` 
                     : ''}
                 ${data.status.id === 3 
-                    ? `<button class="btn btn-success fw-medium" onclick="showComplete('${data.tracking_number}')">Confirmar entrega</button>` 
+                    ? `<button class="btn btn-success fw-medium" id="completeButton" onclick="showDelivery('${data.tracking_number}')">Confirmar entrega</button>` 
                     : ''}
             </div>
         </div>
@@ -235,7 +221,7 @@ async function printQR(tracking_number) {
             throw new Error(data.message);
         }
 
-        shipmentData = result.shipment;
+        shipmentData = data.shipment;
     } catch (error) {
         let errorMessage = error.message;
 
@@ -327,7 +313,7 @@ async function printQR(tracking_number) {
     } catch (error) {
         let errorMessage = error.message;
 
-        if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar con el servidor";
+        if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servicio de impresion";
         showNotification('error', errorMessage);
     }
 };
@@ -378,26 +364,45 @@ document.addEventListener('DOMContentLoaded', function () {
 // ============= Event Listeners - Modal de Envíos =============
 showShipment.addEventListener('click', async () => {
     showShipment.classList.add('disabled');
+    shipmentForm.classList.add('d-none');
+    shipmentButton.classList.add('disabled');
+    shipmentContainer.innerHTML = `
+        <div class="d-flex justify-content-center my-2">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden"></span>
+            </div>
+        </div>
+    `;
+
+    shipmentModal.show();
 
     try {
         const response = await fetch('/api/v1/packages_categories/');
         const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error('Error al obtener precios y tipos de paquetes');
-        };
+        if (response.ok) {
+            Object.values(data).forEach(element => {
+                if (element.status !== 200) {
+                    throw new Error(element.message);
+                }
+            });
+        } else {
+            throw new Error(data.message);
+        }
 
         typeSelect.innerHTML = data.package_types.data.map(type => 
-            `<option value="${type.id}">${type.name}</option>`
+            `<option value="${type.abbreviation}">${type.name}</option>`
         ).join('');
         
         priceSelect.innerHTML = data.package_prices.data.map(price => 
-            `<option value="${price.id}">${price.name} - $${price.mount}</option>`
+            `<option value="${price.abbreviation}">${price.name} - $${price.mount}</option>`
         ).join('');
+
+        shipmentContainer.innerHTML = '';
+        shipmentContainer.classList.add('d-none');
+        shipmentForm.classList.remove('d-none');
+        shipmentButton.classList.remove('disabled');
     } catch (error) {
-        shipmentButton.classList.add('disabled');
-        shipmentForm.classList.add('d-none');
-        
         let errorMessage = error.message;
         
         if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servidor";
@@ -407,7 +412,6 @@ showShipment.addEventListener('click', async () => {
         showNotification('error', "Error al obtener datos");
     } finally {
         showShipment.classList.remove('disabled');
-        shipmentModal.show();
     };
 });
 
@@ -465,40 +469,45 @@ shipmentButton.addEventListener('click', async () => {
     }
 });
 
+typeSelect.addEventListener('change', function () {
+    const itsTourism = this.options[this.selectedIndex].value === 'TUR';
+    
+    senderInput.disabled = itsTourism;
+    senderContainer.classList.toggle('d-none', itsTourism);
+    envelopeInput.disabled = itsTourism;
+    envelopeContainer.classList.toggle('d-none', itsTourism);
+    packageCheckbox.disabled = itsTourism;
+    packageContainer.classList.toggle('d-none', itsTourism);
+    
+    if (itsTourism) {
+        senderInput.value = '';
+        envelopeInput.value = '';
+        packageCheckbox.checked = false;
+    }
+});
+
 // Reset del modal al cerrarse
 shipmentModal._element.addEventListener('hidden.bs.modal', function () {
     shipmentForm.reset();
     shipimetFormAllFields.forEach(field => field.classList.remove('is-invalid', 'is-valid'));
     shipmentForm.classList.remove('d-none');
-    printerContainer.innerHTML = '';
+    
     shipmentButton.classList.remove('disabled');
+    
+    shipmentContainer.innerHTML = '';
+    shipmentContainer.classList.remove('d-none');
 
-    senderInput.disabled = false;
-    senderContainer.classList.remove('d-none');
-    envelopeInput.disabled = false;
-    envelopeContainer.classList.remove('d-none');
-    packageCheckbox.disabled = false;
-    packageContainer.classList.remove('d-none');
     typeSelect.innerHTML = '';
     priceSelect.innerHTML = '';
-});
-
-// Cambio en tipo de paquete
-typeSelect.addEventListener('change', function () {
-    const isTourism = this.options[this.selectedIndex].text.toLowerCase() === 'turismo';
     
-    senderInput.disabled = isTourism;
-    senderContainer.classList.toggle('d-none', isTourism);
-    envelopeInput.disabled = isTourism;
-    envelopeContainer.classList.toggle('d-none', isTourism);
-    packageCheckbox.disabled = isTourism;
-    packageContainer.classList.toggle('d-none', isTourism);
+    packageCheckbox.disabled = false;
+    packageContainer.classList.remove('d-none');
     
-    if (isTourism) {
-        senderInput.value = '';
-        envelopeInput.value = '';
-        packageCheckbox.checked = false;
-    }
+    senderInput.disabled = false; 
+    senderContainer.classList.remove('d-none');
+    
+    envelopeInput.disabled = false;
+    envelopeContainer.classList.remove('d-none');
 });
 
 // ============= Event Listeners - Modal QR =============
@@ -513,7 +522,7 @@ scanQr.addEventListener('click', () => {
     qrModal.show();
 });
 
-qrModal._element.addEventListener('hide.bs.modal', async () => {
+qrModal._element.addEventListener('hidden.bs.modal', async () => {
     if (scanner) await scanner.clear();
 });
 
@@ -521,6 +530,17 @@ qrModal._element.addEventListener('hide.bs.modal', async () => {
 
 showConfig.addEventListener('click', async () => {
     showConfig.classList.add('disabled');
+    printerButton.classList.add('disabled');
+    printerSelect.classList.add('d-none');
+    printerContainer.innerHTML = `
+        <div class="d-flex justify-content-center my-2">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden"></span>
+            </div>
+        </div>
+    `;
+
+    printerModal.show();
 
     try {
         const response = await fetch("http://localhost:2811/impresoras");
@@ -531,14 +551,12 @@ showConfig.addEventListener('click', async () => {
         printerSelect.innerHTML = data.map(printer => 
             `<option value="${printer}">🖨️ ${printer}</option>`
         ).join('');
-    
+        
         printerContainer.textContent = '';
+        printerContainer.classList.add('d-none');
         printerSelect.classList.remove('d-none');
         printerButton.classList.remove('disabled');
     } catch (error) {
-        printerSelect.classList.add('d-none');
-        printerButton.classList.add('disabled');
-        
         let errorMessage = error.message;
         
         if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servicio de impresion";
@@ -548,7 +566,6 @@ showConfig.addEventListener('click', async () => {
         showNotification('error', 'Error al obtener impresoras');
     } finally {
         showConfig.classList.remove('disabled');
-        printerModal.show();
     }
 });
 
@@ -570,27 +587,62 @@ printerModal._element.addEventListener('hidden.bs.modal', () => {
 });
 
 // ============= Funciones de Completado =============
-/**
- * Muestra el modal para confirmar entrega
- * @param {string} tracking_number - Número de seguimiento
- */
-async function showComplete(tracking_number) {
+async function showDelivery(trackingNumber) {
+    const completeButton = document.getElementById('completeButton');
+
+    trackingConfirm = trackingNumber;
+
+    completeButton.classList.add('disabled');
+    deliveryButton.classList.add('disabled');
+    paymentSelect.classList.add('d-none');
+
+    deliveryContainer.innerHTML = `
+        <div class="d-flex justify-content-center my-2">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden"></span>
+            </div>
+        </div>
+    `;
+
+    deliveryModal.show();
+
     try {
         const response = await fetch(`/api/v1/payments_types/`);
         const data = await response.json();
-        
-        if (!response.ok) {
-            showNotification('error', 'Error al obtener métodos de pago');
-            return;
+
+        if (data.status !== 200) {
+            throw new Error(data.message);
         }
 
-        trackingTitle.textContent = tracking_number;
-        paymentSelect.innerHTML = data.map(payment => 
+        deliveryContainer.innerHTML = '';
+        deliveryContainer.classList.add('d-none');
+
+        trackingTitle.textContent = trackingNumber;
+        paymentSelect.innerHTML = data.data.map(payment =>
             `<option value="${payment.abbreviation}">${payment.name}</option>`
         ).join('');
-        
-        completeModal.show();
-    } catch {
-        showNotification('error', 'Error al cargar modal');
+
+        paymentSelect.classList.remove('d-none');
+        trackingTitle.classList.remove('d-none');
+        deliveryButton.classList.remove('disabled');
+    } catch (error) {
+        let errorMessage = error.message;
+
+        if (error.message.includes('Failed to fetch')) errorMessage = "No se pudo conectar al servidor";
+
+        deliveryContainer.innerHTML = `<p class="text-danger text-center fw-semibold my-2">${errorMessage}</p>`;
+
+        showNotification('error', 'Error al obtener tipos de pago');
+    } finally {
+        completeButton.classList.remove('disabled');
     }
 };
+
+deliveryModal._element.addEventListener('hidden.bs.modal', () => {
+    trackingTitle.classList.add('d-none');
+    deliveryContainer.innerHTML = '';
+    deliveryContainer.classList.remove('d-none');
+    paymentSelect.classList.remove('d-none');
+    paymentSelect.selectedIndex = 0;
+    trackingNumber = '';
+});

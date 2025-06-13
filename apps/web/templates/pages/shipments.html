@@ -16,7 +16,7 @@
 {% block content %}
     {% include 'components/navbar.html' %}
     <div class="container">
-        <table class="table table-bordered w-100" id="shipmentsTable">
+        <table class="table table-bordered" id="shipmentsTable">
             <thead>
                 <tr>
                     <th class="text-center align-middle"><i class="ti ti-info-circle-filled fs-3"></i></th>
@@ -29,16 +29,21 @@
         </table>
     </div>
 
-    <div class="d-flex flex-column gap-2 position-fixed bottom-0 end-0 m-4">
-        <button type="button" class="btn btn-primary d-flex justify-content-center align-items-center py-2" id="showConfig">
-            <i class="ti ti-printer fs-5"></i>
-        </button>
-        <button type="button" class="btn btn-warning d-flex justify-content-center align-items-center py-2" id="scanQr">
-            <i class="ti ti-qrcode fs-5"></i>
-        </button>
-        <button type="button" class="btn btn-success d-flex justify-content-center align-items-center py-2" id="showShipment">
-            <i class="ti ti-device-ipad-plus fs-5"></i>
-        </button>
+    <div class="d-flex bg-dark flex-column p-2 rounded gap-2 position-absolute bottom-0 end-0 m-2 m-md-3"
+        id="optionsContainer">
+        <div class="d-flex flex-column gap-2" id="optionsModule">
+            <button type="button" class="btn btn-primary d-flex justify-content-center align-items-center py-2"
+                style="line-height: 0;" id="showConfig">
+                <i class="ti ti-printer fs-5"></i>
+            </button>
+            <button type="button" class="btn btn-warning d-flex justify-content-center align-items-center py-2" id="scanQr">
+                <i class="ti ti-qrcode fs-5"></i>
+            </button>
+            <button type="button" class="btn btn-success d-flex justify-content-center align-items-center py-2"
+                style="line-height: 0;" id="showShipment">
+                <i class="ti ti-device-ipad-plus fs-5 d-inline-block"></i>
+            </button>
+        </div>
     </div>
 
     <div class="modal fade" tabindex="-1" id="shipmentModal" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -47,22 +52,26 @@
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title">Nuevo envio</h5>
                     <div data-bs-theme="dark">
-                        <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
                 </div>
                 <div class="modal-body">
                     <form class="d-flex flex-column gap-3" id="shipmentForm">
                         <div class="form-floating" id="senderContainer">
+                            <input type="text" class="form-control shadow-none" placeholder="@" name="sender"
+                                id="senderInput">
                             <label for="senderInput">Remitente</label>
-                            <input type="text" class="form-control shadow-none" placeholder="@" name="sender" id="sender">
                         </div>
                         <div class="form-floating">
+                            <input type="text" class="form-control shadow-none" placeholder="@" name="recipient"
+                                id="recipientInput">
                             <label for="recipientInput">Destinatario</label>
-                            <input type="text" class="form-control shadow-none" placeholder="@" name="recipient" id="recipient">
                         </div>
                         <div class="form-floating">
+                            <input type="number" class="form-control shadow-none" placeholder="@" name="phone"
+                                id="phoneInput">
                             <label for="phoneInput">Numero de celular</label>
-                            <input type="number" class="form-control shadow-none" placeholder="@" name="phone" id="phone">
                         </div>
                         <div class="d-flex flex-column flex-md-row gap-3">
                             <div class="flex-fill">
@@ -73,80 +82,85 @@
                             </div>
                         </div>
                         <div class="form-floating" id="envelopeContainer">
+                            <input type="number" class="form-control shadow-none" placeholder="@" name="envelope_amount"
+                                id="envelopeInput">
                             <label for="envelopeInput">Importe de sobres</label>
-                            <input type="number" class="form-control shadow-none" placeholder="@" name="envelope_amount" id="envelopeInput">
                         </div>
                         <div class="form-check form-switch py-2" id="packageContainer">
-                            <label class="form-check-label fw-semibold" for="packageCheckbox">Se retiro el paquete</label>
                             <input class="form-check-input shadow-none" type="checkbox" role="switch" id="packageCheckbox">
+                            <label class="form-check-label fw-semibold" for="packageCheckbox">Se retiro el paquete</label>
                         </div>
                     </form>
                     <div id="shipmentContainer"></div>
                 </div>
                 <div class="modal-footer bg-dark text-white">
-                    <button type="button" class="btn btn-success" id="shipmentButton">Confirmar</button>
+                    <button type="button" class="btn btn-success fw-medium" id="shipmentButton">Confirmar</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="modal fade" tabindex="-1" id="qrModal" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title">Escanear QR</h5>
-                <div data-bs-theme="dark">
-                    <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Escaner</h5>
+                    <div data-bs-theme="dark">
+                        <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
                 </div>
-            </div>
-            <div class="modal-body" >
-                <div id="qr-reader"></div>
-                <div class="d-none p-3" id="qrSpinner">
-                    <h2 class="fs-4 text-center">Procesando</h2>
-                    <div class="d-flex justify-content-center">
-                        <div class="spinner-border text-success" style="width: 3rem; height: 3rem;" role="status"></div>
+                <div class="modal-body">
+                    <div id="qr-reader"></div>
+                    <div class="d-none p-3" id="qrSpinner">
+                        <h2 class="fs-4 text-center">Procesando</h2>
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border text-success" style="width: 3rem; height: 3rem;" role="status"></div>
+                        </div>
                     </div>
                 </div>
             </div>
-          </div>
         </div>
     </div>
 
     <div class="modal fade" tabindex="-1" id="printerModal" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title">Configuracion de impresora</h5>
-                <div data-bs-theme="dark">
-                    <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Impresoras</h5>
+                    <div data-bs-theme="dark">
+                        <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal"></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <select class="form-select fw-medium shadow-sm p-3" id="printerSelect"></select>
+                    <div id="printerContainer"></div>
+                </div>
+                <div class="modal-footer bg-dark">
+                    <button type="button" class="btn btn-success fw-medium" id="printerButton">Guardar</button>
                 </div>
             </div>
-            <div class="modal-body py-4">
-                <select class="form-select fw-medium shadow-sm p-3" id="printerSelect"></select>
-                <div id="printerContainer"></div>
-            </div>
-            <div class="modal-footer bg-dark text-white">
-                <button type="button" class="btn btn-success fw-medium" id="printerButton">Guardar</button>
-            </div>
-          </div>
         </div>
     </div>
 
-    <div class="modal fade" tabindex="-1" id="completeModal" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Completar entrega</h5>
-              <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal fade" tabindex="-1" id="deliveryModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Completar entrega</h5>
+                    <div data-bs-theme="dark">
+                        <button type="button" class="btn-close shadow-none m-0" data-bs-dismiss="modal"></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <p class="text-center fw-medium text-decoration-underline link-offset-1 fs-4 d-none" id="trackingTitle"></p>
+                    <select class="form-select fw-medium py-3 shadow-none" id="paymentSelect"></select>
+                    <div id="deliveryContainer"></div>
+                </div>
+                <div class="modal-footer bg-dark">
+                    <button type="button" class="btn btn-success fw-medium" id="deliveryButton">Confirmar</button>
+                </div>
             </div>
-            <div class="modal-body">
-                <p id="trackingTitle"></p>
-                <select class="form-select py-3 shadow-none" id="paymentSelect"></select>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-success" id="printerButton">Confirmar</button>
-            </div>
-          </div>
         </div>
     </div>
 {% endblock %}

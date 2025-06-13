@@ -1,3 +1,5 @@
+from dis import hasarg
+from email import message
 import requests
 import uuid
 
@@ -7,7 +9,7 @@ from .serializers import (
     PackagePricesSerializer, PackageTypesSerializer, PaymentsTypesSerializer
 )
 
-from rest_framework import status
+from rest_framework import status, exceptions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
@@ -90,61 +92,105 @@ class CreateShipmentView(APIView):
 
 class SearchShipmentView(APIView):
     def get(self, request, tracking_number):
+        response_data = {}
+
         try:
             shipment = Shipments.objects.get(tracking_number=tracking_number)
-            serializer = ShipmentSearchSerializer(shipment)
+            shipment_data = ShipmentSearchSerializer(shipment).data
+            
+            response_data = {
+                'status': status.HTTP_200_OK,
+                'message': 'Busqueda exitosa',
+                'content': shipment_data
+            }
 
-            return Response({
-                    'status': 'success',
-                    'message': 'Operacion exitosa',
-                    'shipment': serializer.data
-                }, status=status.HTTP_200_OK
-            )
+            return Response(response_data, status=status.HTTP_200_OK)
         except Shipments.DoesNotExist:
+            response_data = {
+                'status': status.HTTP_404_NOT_FOUND,
+                'message': 'No se encontro el envio'
+            }
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            error_message = f"Error interno del servidor: {str(e)}"
             return Response({
-                    'status': 'error',
-                    'message': f'No se encontro ningun paquete con el numero de seguimiento {tracking_number}'
-                }, status=status.HTTP_404_NOT_FOUND
+                    'status': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    'message': error_message
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 class PackagesCategoriesView(APIView):
     def get(self, request):
-        package_types = PackageTypes.objects.all()
-        package_prices = PackagePrices.objects.all()
+        try:
+            package_types = PackageTypes.objects.all()
+            package_prices = PackagePrices.objects.all()
+            
+            missing = []
+            if not package_types.exists():
+                missing.append("tipos de paquetes")
+            if not package_prices.exists():
+                missing.append("precios de paquetes")   
+            
+            if missing:
+                items_str = missing[0]
+                if len(missing) == 2:
+                    items_str = f"{missing[0]} y {missing[1]}"
         
-        has_types = package_types.exists()
-        has_prices = package_prices.exists()
-        
-        package_types_data = PackageTypesSerializer(package_types, many=True).data if has_types else None
-        package_prices_data = PackagePricesSerializer(package_prices, many=True).data if has_prices else None
-
-        return Response({
-            'package_types': {
-                'message': 'Tipo de paquetes' if has_types else 'Error en la operacion',
-                'status': 'success' if has_types else 'error',
-                'data': package_types_data if has_types else 'No se encontraron tipos de paquetes'
-            },
-            'package_prices': {
-                'message': 'Precios de paquetes' if has_prices else 'Error en la operacion',
-                'status': 'success' if has_prices else 'error',
-                'data': package_prices_data if has_prices else 'No se encontraron precios de paquetes'
+                raise exceptions.NotFound(detail=f"No se encontraron {items_str}")
+            
+            response_data = {
+                'package_types': {
+                    'status': status.HTTP_200_OK,
+                    'message': 'Tipos de paquetes',
+                    'content': PackageTypesSerializer(package_types, many=True).data
+                },
+                'package_prices': {
+                    'status': status.HTTP_200_OK,
+                    'message': 'Precios de paquetes',
+                    'content': PackagePricesSerializer(package_prices, many=True).data
+                }
             }
-        }, status=status.HTTP_200_OK)
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        except exceptions.NotFound as e:
+            return Response({
+                'status': status.HTTP_404_NOT_FOUND,
+                'message': e.detail
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            error = f"Error interno del servidor: {str(e)}"
+            return Response({
+                'status': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                'message': error
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class PaymentsTypesView(APIView):
     def get(self, request):
-        payments_types = PaymentsTypes.objects.all()
+        try:
+            payments_types = PaymentsTypes.objects.all()
 
-        has_payments = payments_types.exists()
+            has_payments = payments_types.exists()
 
-        payments_types_data = PaymentsTypesSerializer(payments_types, many=True).data if has_payments else None
+            payments_types_data = (
+                PaymentsTypesSerializer(payments_types, many=True).data if has_payments else None
+            )
 
-        return Response({
-                'message': 'Tipos de pagos' if has_payments else 'Error en la operacion',
-                'status':'success' if has_payments else 'error',
-                'data': payments_types_data if has_payments else 'No se encontraron tipos de pagos'
-            }, status=status.HTTP_200_OK
-        )
+            return Response({
+                    'message': 'Tipos de pagos' if has_payments else 'No se encontraron tipos de pagos',
+                    'status': status.HTTP_200_OK if has_payments else status.HTTP_404_NOT_FOUND,
+                    'content': payments_types_data
+                }, status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            error_message = f'Error interno del servidor: {str(e)}'
+            return Response({
+                'status': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                'message': "Ocurrio un problema al procesar la solicitud",
+                'details': error_message
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UpdateShipmentStatusView(APIView):
     def post(self, request, tracking_number):
